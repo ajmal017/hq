@@ -49,6 +49,7 @@ def get_daily_data(code):
         'mas': [],
     }
     ohlc_df = read_csv("data/ohlc_daily/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_daily/SZ000001.txt", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
@@ -68,6 +69,7 @@ def get_weekly_data(code):
         'mas': [],
     }
     ohlc_df = read_csv("data/ohlc_weekly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_weekly/SZ000001.txt", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
@@ -87,6 +89,7 @@ def get_monthly_data(code):
         'mas': [],
     }
     ohlc_df = read_csv("data/ohlc_monthly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_monthly/SZ000001.txt", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
