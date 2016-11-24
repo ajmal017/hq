@@ -20,6 +20,7 @@ function get_option(opData){
             showSymbol: false,
             lineStyle: {
                 normal: {
+                    color: 'green',
                     width: 1
                 }
             }
