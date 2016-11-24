@@ -2,6 +2,7 @@
 #-*-coding:utf-8-*-
 
 import os
+import math
 import datetime
 import json
 import sys
@@ -47,7 +48,6 @@ def get_daily_data(code):
         'ohlcs': [],
         'mas': [],
     }
-
     ohlc_df = read_csv("data/ohlc_daily/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
     macd_df = read_csv("data/macd_daily/SZ000001.txt", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
@@ -58,8 +58,45 @@ def get_daily_data(code):
         icol = int(col)
         if icol >= 10 and icol % 10 != 0:
             continue
+        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
+    return data
 
-        data['mas'].append(macd_df[col].values.tolist())
+def get_weekly_data(code):
+    data = {
+        'dates': [],
+        'ohlcs': [],
+        'mas': [],
+    }
+    ohlc_df = read_csv("data/ohlc_weekly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    macd_df = read_csv("data/macd_weekly/SZ000001.txt", nrows=250)
+    ohlc_df = ohlc_df.iloc[::-1]
+    macd_df = macd_df.iloc[::-1]
+    data['dates'] = ohlc_df.index.values.tolist()
+    data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
+    for col in macd_df.columns:
+        icol = int(col)
+        if icol >= 10 and icol % 10 != 0:
+            continue
+        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
+    return data
+
+def get_monthly_data(code):
+    data = {
+        'dates': [],
+        'ohlcs': [],
+        'mas': [],
+    }
+    ohlc_df = read_csv("data/ohlc_monthly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    macd_df = read_csv("data/macd_monthly/SZ000001.txt", nrows=250)
+    ohlc_df = ohlc_df.iloc[::-1]
+    macd_df = macd_df.iloc[::-1]
+    data['dates'] = ohlc_df.index.values.tolist()
+    data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
+    for col in macd_df.columns:
+        icol = int(col)
+        if icol >= 10 and icol % 10 != 0:
+            continue
+        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
     return data
 
 
@@ -169,8 +206,13 @@ class KlineHandler(RequestHandler):
     def post(self, code):
         if not code:
             raise Exception('用户名或密码错误')
-
-        data = get_daily_data(code)
+        duration = self.get_args('duration')
+        if duration == 'daily':
+            data = get_daily_data(code)
+        elif duration == 'weekly':
+            data = get_weekly_data(code)
+        else:
+            data = get_monthly_data(code)
         if not data:
             self.reply_error('数据错误')
         else:

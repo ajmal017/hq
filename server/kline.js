@@ -89,12 +89,19 @@ function get_option(opData){
     };
     return option;
 }
-var myChart = echarts.init(document.getElementById('monthly'));
-myChart.showLoading();
-$.post("/stk/kline/000001").done(function (data){
-    data = JSON.parse(data);
-    myChart.hideLoading();
-    option = get_option(data['data']);
-    myChart.setOption(option);
-});
+
+function init_chart(chartId){
+    var myChart = echarts.init(document.getElementById(chartId));
+    myChart.showLoading();
+    $.post("/stk/kline/000001", {"duration": chartId}, function (data){
+        // data = JSON.parse(data);
+        myChart.hideLoading();
+        option = get_option(data['data']);
+        myChart.setOption(option);
+    }, "json");
+}
+
+init_chart('monthly');
+init_chart('weekly')
+init_chart('daily')
 
