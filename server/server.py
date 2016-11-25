@@ -17,9 +17,17 @@ from tornado import gen
 from tornado.web import url
 from tornado.options import define, options
 
+from sqlalchemy import create_engine
 import pandas as pd
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
+
+engine = create_engine('mysql://stk:stkP@55word@localhost/stk', echo=False)
+
+FROM_SQL = True
+ohlc_cols = ','.join(['date', 'open', 'close', 'low', 'high'])
+macd_cols = ','.join(['date', 'ma5'] + ['ma%s' % i for i in range(10, 251, 10)])
+
 
 def read_csv(csvpath, usecols=[], nrows=None):
     '''
@@ -42,6 +50,27 @@ def read_csv(csvpath, usecols=[], nrows=None):
             FORMAT = '%Y%m%d'
         df['date'] = pd.to_datetime(df['date'], format=FORMAT)
     return df
+
+
+def get_db_data(code, table, limit=250):
+    data = {
+        'dates': [],
+        'ohlcs': [],
+        'mas': [],
+    }
+
+    ohlc_sql = 'SELECT %s FROM ohlc_%s where date > 0 and code = "%s" order by date desc limit %s' % (ohlc_cols, table, code, limit)
+    ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
+    macd_sql = 'SELECT * FROM macd_%s where date > 0 and code = "%s" order by date desc limit %s' % (table, code, limit)
+    macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
+    ohlc_df = ohlc_df.iloc[::-1]
+    macd_df = macd_df.iloc[::-1]
+    data['dates'] = ohlc_df.index.values.tolist()
+    data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
+    for col in macd_df.columns:
+        if col.startswith("ma"):
+            data['mas'].append(map(lambda i: i if i > 0 else '-', macd_df[col].values.tolist()))
+    return data
 
 
 def get_daily_data(code):
@@ -213,11 +242,14 @@ class KlineHandler(RequestHandler):
             raise Exception('用户名或密码错误')
         duration = self.get_args('duration')
         if duration == 'daily':
-            data = get_daily_data(code)
+            data = get_db_data(code, 'daily')
+            # data = get_daily_data(code)
         elif duration == 'weekly':
-            data = get_weekly_data(code)
+            data = get_db_data(code, 'weekly')
+            # data = get_weekly_data(code)
         else:
-            data = get_monthly_data(code)
+            data = get_db_data(code, 'monthly')
+            # data = get_monthly_data(code)
         if not data:
             self.reply_error('数据错误')
         else:
