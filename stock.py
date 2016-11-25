@@ -22,11 +22,12 @@ except ImportError:
 from logbook import Logger, FileHandler
 import tushare as ts
 
+CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
 DATE = str(TODAY.date())
 log = Logger('Logbook')
-error_handler = FileHandler("%s-error.log" % DATE)
-info_handler = FileHandler("%s-info.log" % DATE)
+error_handler = FileHandler(os.path.join(CURDIR, "%s-error.log" % DATE))
+info_handler = FileHandler(os.path.join(CURDIR, "%s-info.log" % DATE))
 
 def error(msg):
     with error_handler.applicationbound():
@@ -215,7 +216,7 @@ def get_all_ohlcs():
     for code in basics_df.index.values:
         if cnt >= 1:
             break
-        dst = 'ohlc_daily/%s.txt' % code
+        dst = os.path.join(CURDIR, 'ohlc_daily/%s.txt' % code)
         if os.path.exists(dst):
             info("%s exists.." % dst)
             continue
