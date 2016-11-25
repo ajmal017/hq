@@ -212,10 +212,7 @@ def get_hfq_data(code, start=None, end=None,
 
 
 def get_all_ohlcs():
-    cnt = 0
     for code in basics_df.index.values:
-        if cnt >= 1:
-            break
         dst = os.path.join(CURDIR, 'ohlc_daily/%s.txt' % code)
         if os.path.exists(dst):
             info("%s exists.." % dst)
@@ -226,8 +223,7 @@ def get_all_ohlcs():
         if 'code' not in df.columns:
             df.insert(0, 'code', code)
         df.to_csv(dst, date_format="%Y%m%d")
-
-        cnt += 1
+        info("%s finished.." % dst)
 
 
 if __name__ == "__main__":
