@@ -19,12 +19,14 @@ from tornado.options import define, options
 
 import pandas as pd
 
+CURDIR = os.path.abspath(os.path.dirname(__file__))
 
 def read_csv(csvpath, usecols=[], nrows=None):
     '''
     参数控制只读某些列和前面的n行。
     注意：csv按时间倒序
     '''
+    csvpath = "%s/%s" % (CURDIR, csvpath)
     if usecols:
         if 0 not in usecols:
             usecols.insert(0, 0)
@@ -48,9 +50,9 @@ def get_daily_data(code):
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_daily/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = read_csv("data/ohlc_daily/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
-    macd_df = read_csv("data/macd_daily/SZ000001.txt", nrows=250)
+    macd_df = read_csv("data/macd_daily/SZ000001.TXT", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
     data['dates'] = ohlc_df.index.values.tolist()
@@ -68,9 +70,9 @@ def get_weekly_data(code):
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_weekly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = read_csv("data/ohlc_weekly/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
-    macd_df = read_csv("data/macd_weekly/SZ000001.txt", nrows=250)
+    macd_df = read_csv("data/macd_weekly/SZ000001.TXT", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
     data['dates'] = ohlc_df.index.values.tolist()
@@ -88,9 +90,9 @@ def get_monthly_data(code):
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_monthly/SZ000001.txt", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = read_csv("data/ohlc_monthly/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
-    macd_df = read_csv("data/macd_monthly/SZ000001.txt", nrows=250)
+    macd_df = read_csv("data/macd_monthly/SZ000001.TXT", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
     data['dates'] = ohlc_df.index.values.tolist()
@@ -233,7 +235,7 @@ class Application(tornado.web.Application):
             xsrf_cookies=False,
             gzip=True,
             autoescape=None,
-            static_path=os.path.abspath(os.path.dirname(__file__))
+            static_path=CURDIR
         )
 
         tornado.web.Application.__init__(self, handlers, **settings)
