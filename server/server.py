@@ -52,7 +52,7 @@ def read_csv(csvpath, usecols=[], nrows=None):
     return df
 
 
-def get_db_data(code, table, limit=250):
+def get_db_data(code, table, limit=120):
     data = {
         'dates': [],
         'ohlcs': [],
@@ -61,7 +61,7 @@ def get_db_data(code, table, limit=250):
 
     ohlc_sql = 'SELECT %s FROM ohlc_%s where date > 0 and code = "%s" order by date desc limit %s' % (ohlc_cols, table, code, limit)
     ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
-    macd_sql = 'SELECT * FROM macd_%s where date > 0 and code = "%s" order by date desc limit %s' % (table, code, limit)
+    macd_sql = 'SELECT %s FROM macd_%s where date > 0 and code = "%s" order by date desc limit %s' % (macd_cols, table, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
