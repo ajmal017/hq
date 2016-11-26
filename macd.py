@@ -33,12 +33,12 @@ def print_time(f):
     return wrapper
 
 
-
-
 @click.group()
 def cli():
     pass
 
+
+CURDIR = os.path.dirname(os.path.abspath(__file__))
 
 header = ['date', 'open', 'high', 'low', 'close', 'volume', 'money']
 header_size = len(header)
@@ -68,19 +68,17 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 @print_time
 def _macd(filename, max_days, data_dir, macd_dir):
     global header, header_size
-    data_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), data_dir)
+    data_dir = os.path.join(CURDIR, data_dir)
     assert os.path.exists(data_dir)
     data_path = os.path.join(data_dir, filename)
-    macd_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), macd_dir)
+    macd_dir = os.path.join(CURDIR, macd_dir)
     if not os.path.exists(macd_dir):
         os.mkdir(macd_dir)
     csv_path = os.path.join(macd_dir, filename)
 
-    if os.path.exists(csv_path) and not force:
-        print("get from %s" % csv_path)
-        return _read_csv(csv_path)
+    if os.path.exists(csv_path):
+        print ("%s exists.." % csv_path)
+        return
     if not os.path.exists(data_path):
         print("%s not exits." % data_path)
         return None
@@ -99,7 +97,11 @@ def _macd(filename, max_days, data_dir, macd_dir):
     df2 = df[columns]
     for i in range(2, max_days + 1):
         df2[str(i)] /= i
-    df2.to_csv(csv_path)
+    if 'code' not in df2.columns:
+        code = filename.split(".")[0]
+        df2.insert(0, 'code', code)
+    save_cols = ['code', '5'] + [str(i) for i in range(10, max_days+1, 10)]
+    df2.to_csv(csv_path, columns=save_cols)
     return df2
 
 
