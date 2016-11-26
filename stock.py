@@ -170,7 +170,7 @@ def get_market_date(code):
 
 
 def get_hfq_data(code, start=None, end=None,
-               index=False, retry_count=3, pause=0.005, drop_factor=True):
+               index=False, retry_count=3, pause=0.01, drop_factor=True):
     '''
     获取前复权数据
     '''
