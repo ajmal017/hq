@@ -85,10 +85,7 @@ def _macd(filename, max_days, data_dir, macd_dir):
         print("%s not exits." % data_path)
         return None
 
-    if latest > 0:
-        df = _read_csv(data_path, nrows=latest)
-    else:
-        df = _read_csv(data_path)
+    df = _read_csv(data_path)
     if df.shape[0] > 1:
         assert df.index[0] > df.index[-1], df.index
 
@@ -115,7 +112,6 @@ def macd(filename, max_days, data_dir, macd_dir):
     '''
     计算移动平均线
     '''
-    filename = filename.upper()
     print(filename, max_days, data_dir, macd_dir)
     if filename == 'ALL':
         filenames = os.listdir(data_dir)
@@ -124,7 +120,7 @@ def macd(filename, max_days, data_dir, macd_dir):
 
     for filename in filenames:
         df = _macd(
-            filename, max_days, latest, data_dir, macd_dir, force)
+            filename, max_days, data_dir, macd_dir)
 
 cli.add_command(macd)
 
