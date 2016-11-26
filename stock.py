@@ -19,6 +19,7 @@ try:
     from urllib.request import urlopen, Request
 except ImportError:
     from urllib2 import urlopen, Request
+
 from logbook import Logger, FileHandler
 import tushare as ts
 
@@ -123,11 +124,11 @@ def _parse_fq_data(url, index, retry_count, pause):
                 df['date'] = df['date'].astype(np.datetime64)
                 df = df.drop_duplicates('date')
         except ValueError as e:
-            error(str(e))
+            error("%s %s" % (url, str(e)))
             # 时间较早，已经读不到数据
             return None
         except Exception as e:
-            error(str(e))
+            error("%s %s" % (url, str(e)))
         else:
             return df
     raise IOError("NETWORK_URL_ERROR_MSG")
@@ -170,7 +171,7 @@ def get_market_date(code):
 
 
 def get_hfq_data(code, start=None, end=None,
-               index=False, retry_count=3, pause=0.005, drop_factor=True):
+                 index=False, retry_count=3, pause=0.005, drop_factor=True):
     '''
     获取前复权数据
     '''
@@ -202,12 +203,12 @@ def get_hfq_data(code, start=None, end=None,
     data = data.drop_duplicates('date')
     if drop_factor:
         data = data.drop('factor', axis=1)
-    data = data[(data.date>=start) & (data.date<=end)]
+        data = data[(data.date>=start) & (data.date<=end)]
     for label in ['open', 'high', 'close', 'low']:
         data[label] = data[label].map(lambda x: '%.2f' % x)
         data[label] = data[label].astype(float)
-    data = data.set_index('date')
-    data = data.sort_index(ascending = False)
+        data = data.set_index('date')
+        data = data.sort_index(ascending = False)
     return data
 
 
@@ -222,8 +223,8 @@ def get_all_ohlcs():
             continue
         if 'code' not in df.columns:
             df.insert(0, 'code', code)
-        df.to_csv(dst, date_format="%Y%m%d")
-        info("%s finished.." % dst)
+            df.to_csv(dst, date_format="%Y%m%d")
+            info("%s finished.." % dst)
 
 
 if __name__ == "__main__":
