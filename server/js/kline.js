@@ -1,6 +1,7 @@
 function get_option(opData){
     var series = [{
         type: 'candlestick',
+        name: 'ohlcs',
         data: opData['ohlcs'],
         itemStyle: {
             normal: {
@@ -12,10 +13,11 @@ function get_option(opData){
         }
     }]
 
-    for(var i = 0; i < opData['mas'].length; i ++){
+    for(var name in opData['mas']){
         series.push({
             type: 'line',
-            data: opData['mas'][i],
+            name: name,
+            data: opData['mas'][name],
             smooth: true,
             showSymbol: false,
             lineStyle: {
@@ -78,37 +80,24 @@ function get_option(opData){
     return option;
 }
 
-function get_series(opData){
-    var series = [{
-        type: 'candlestick',
-        data: opData['ohlcs'],
-        itemStyle: {
-            normal: {
-                color: '#FD1050',
-                color0: '#0CF49B',
-                borderColor: '#FD1050',
-                borderColor0: '#0CF49B'
-            }
-        }
-    }]
+function update_series(chart, originOption, opData){
+    var series = originOption.series;
 
-    for(var i = 0; i < opData['mas'].length; i ++){
-        series.push({
-            type: 'line',
-            data: opData['mas'][i],
-            smooth: true,
-            showSymbol: false,
-            lineStyle: {
-                normal: {
-                    color: 'green',
-                    width: 1
-                }
-            }
-        })
+    for(var i = 0; i < series.length; i++){
+        if(series[i].name == 'ohlcs'){
+            series[i].data = opData['ohlcs'].concat(series[i].data);
+        }else{
+            series[i].data = opData['mas'][series[i].name].concat(series[i].data);
+        }
     }
+
     var option = {
-        series: series
+        series: series,
+        xAxis: {
+            data: opData['dates'].concat(originOption.xAxis.data)
+        }
     };
+    console.log(option);
     return option;
 }
 
@@ -124,9 +113,15 @@ function init_chart(chartId){
 
     myChart.on('datazoom', function (params) {
         if(params.start == 0){
-            $.post("/stk/kline/000001", {"duration": chartId, "enddate": "20160513"}, function (data){
-                option = get_series(data['data']);
-                myChart.setOption(option);
+            var originOption = myChart.getOption();
+            var enddate = originOption.xAxis[0].data[0];
+            $.post("/stk/kline/000001", {"duration": chartId, "enddate": enddate}, function (data){
+                if(data['code'] == 0){
+                    option = update_series(myChart, originOption, data['data']);
+                    myChart.setOption(option);
+                }else{
+                    console.log(data);
+                }
             }, "json");
         }
     });

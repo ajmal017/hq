@@ -58,7 +58,7 @@ def get_db_data(code, table, enddate='', limit=30):
     data = {
         'dates': [],
         'ohlcs': [],
-        'mas': [],
+        'mas': {},
     }
 
     if enddate:
@@ -77,7 +77,7 @@ def get_db_data(code, table, enddate='', limit=30):
     data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
     for col in macd_df.columns:
         if col.startswith("ma"):
-            data['mas'].append(map(lambda i: i if i > 0 else '-', macd_df[col].values.tolist()))
+            data['mas'][col] = map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist())
     return data
 
 
@@ -85,32 +85,33 @@ def get_daily_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
-        'mas': [],
+        'mas': {},
     }
     ohlc_df = read_csv("data/ohlc_daily/SZ000001.TXT", nrows=250,
                        usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_daily/SZ000001.TXT", nrows=250)
     if enddate:
-        ohlc_df = ohlc_df.iloc[125::-1]
-        macd_df = macd_df.iloc[125::-1]
-    else:
         ohlc_df = ohlc_df.iloc[:125:-1]
         macd_df = macd_df.iloc[:125:-1]
+    else:
+        ohlc_df = ohlc_df.iloc[125::-1]
+        macd_df = macd_df.iloc[125::-1]
+
     data['dates'] = ohlc_df.index.values.tolist()
     data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
     for col in macd_df.columns:
         icol = int(col)
         if icol >= 10 and icol % 10 != 0:
             continue
-        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
+        data['mas']['ma%s' % col] = map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist())
     return data
 
 def get_weekly_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
-        'mas': [],
+        'mas': {},
     }
     ohlc_df = read_csv("data/ohlc_weekly/SZ000001.TXT", nrows=250,
                        usecols=['open', 'close', 'low', 'high'])
@@ -124,14 +125,14 @@ def get_weekly_data(code, enddate):
         icol = int(col)
         if icol >= 10 and icol % 10 != 0:
             continue
-        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
+        data['mas']['ma%s' % col] = map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist())
     return data
 
 def get_monthly_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
-        'mas': [],
+        'mas': {},
     }
 
     ohlc_df = read_csv("data/ohlc_monthly/SZ000001.TXT", nrows=250,
@@ -146,7 +147,7 @@ def get_monthly_data(code, enddate):
         icol = int(col)
         if icol >= 10 and icol % 10 != 0:
             continue
-        data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
+        data['mas']['ma%s' % col] = map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist())
     return data
 
 
