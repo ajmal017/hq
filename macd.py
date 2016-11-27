@@ -39,6 +39,7 @@ def cli():
 
 
 CURDIR = os.path.dirname(os.path.abspath(__file__))
+print CURDIR
 
 header = ['date', 'open', 'high', 'low', 'close', 'volume', 'money']
 header_size = len(header)
@@ -116,7 +117,7 @@ def macd(filename, max_days, data_dir, macd_dir):
     '''
     print(filename, max_days, data_dir, macd_dir)
     if filename == 'ALL':
-        filenames = os.listdir(data_dir)
+        filenames = os.listdir(os.path.join(CURDIR, data_dir))
     else:
         filenames = [filename]
 
@@ -129,3 +130,4 @@ cli.add_command(macd)
 
 if __name__ == "__main__":
     cli()
+
