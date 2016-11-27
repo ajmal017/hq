@@ -94,7 +94,7 @@ function update_series(chart, originOption, opData){
     var option = {
         series: series,
         xAxis: {
-            data: opData['dates'].concat(originOption.xAxis.data)
+            data: opData['dates'].concat(originOption.xAxis[0].data)
         }
     };
     console.log(option);
