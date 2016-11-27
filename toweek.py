@@ -59,10 +59,10 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 def _ohlc_weekly(filename, ohlc_dir, ohlc_weekly_dir):
     dst = os.path.join(CURDIR, ohlc_weekly_dir, filename)
     src = os.path.join(CURDIR, ohlc_dir, filename)
-    if not os.path.exist(src):
+    if not os.path.exists(src):
         print("%s not exist.." % src)
         return
-    if os.path.exist(dst):
+    if os.path.exists(dst):
         print("%s exist.." % dst)
         return
     code = filename.split(".")[0]
@@ -116,7 +116,7 @@ def _ohlc_weekly(filename, ohlc_dir, ohlc_weekly_dir):
         days.insert(0, idx)
         data.insert(0, [code, open_price, high_price, low_price, close_price])
 
-    set1 = set(map(lambda i: get_idx(datetime.datetime.strptime(i), "%Y%m%d"), df.index.values))
+    set1 = set(map(lambda i: get_idx(datetime.datetime.strptime(str(i), "%Y%m%d")), df.index.values))
     set2 = set(days)
     assert set1 == set2
     df2 = pd.DataFrame(
@@ -139,7 +139,7 @@ def ohlc_weekly(filename, ohlc_dir, ohlc_weekly_dir):
         _ohlc_weekly(filename, ohlc_dir, ohlc_weekly_dir)
 
 
-if __name__ "__main__":
+if __name__ == "__main__":
     ohlc_weekly()
 
 
