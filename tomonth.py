@@ -98,6 +98,10 @@ def _ohlc_monthly(filename, ohlc_dir, ohlc_monthly_dir):
             i = j
             startdate = enddate
         j -= 1
+
+    set1 = set(map(lambda i: i[:6], df.index.values))
+    set2 = set(days)
+    assert set1 == set2
     df2 = pd.DataFrame(
         data, index=days, columns=['code', 'open', 'high', 'low', 'close'])
     df2.to_csv(dst)
