@@ -60,10 +60,10 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 def _ohlc_monthly(filename, ohlc_dir, ohlc_monthly_dir):
     dst = os.path.join(CURDIR, ohlc_monthly_dir, filename)
     src = os.path.join(CURDIR, ohlc_dir, filename)
-    if not os.path.exist(src):
+    if not os.path.exists(src):
         print("%s not exist.." % src)
         return
-    if os.path.exist(dst):
+    if os.path.exists(dst):
         print("%s exist.." % dst)
         return
     df = _read_csv(src)
@@ -75,33 +75,41 @@ def _ohlc_monthly(filename, ohlc_dir, ohlc_monthly_dir):
     code = filename.split(".")[0]
     data = []
     days = []
+    def is_same_month(d1, d2):
+        return d1.year == d2.year and d1.month == d2.month
+
     i = j = df.shape[0] - 1
     startdate = datetime.datetime.strptime(str(df.index[i]), "%Y%m%d")
     while j >= 0:
         enddate = datetime.datetime.strptime(str(df.index[j]), "%Y%m%d")
-        if enddate.month != startdate.month or j == 0:
-            # append(df.iloc[i:j])
-            if enddate.month == startdate.month:
-                tmp_df = df.iloc[j:i + 1]
-                idx = df.index[j]
-            else:
-                tmp_df = df.iloc[j + 1:i + 1]
-                idx = df.index[j + 1]
-
+        if not is_same_month(startdate, enddate):
+            tmp_df = df.iloc[j + 1:i + 1]
+            idx = df.index[j + 1]
             # 注意df是按时间逆序
             open_price = tmp_df['open'].values[-1]
             high_price = max(tmp_df['high'].values)
             low_price = min(tmp_df['low'].values)
             close_price = tmp_df['close'].values[0]
-            days.insert(0, idx[:6])
+            days.insert(0, str(idx)[:6])
             data.insert(0, [code, open_price, high_price, low_price, close_price])
             i = j
             startdate = enddate
         j -= 1
 
-    set1 = set(map(lambda i: i[:6], df.index.values))
+    if j == -1:
+        tmp_df = df.iloc[j + 1:i + 1]
+        idx = df.index[j + 1]
+        # 注意df是按时间逆序
+        open_price = tmp_df['open'].values[-1]
+        high_price = max(tmp_df['high'].values)
+        low_price = min(tmp_df['low'].values)
+        close_price = tmp_df['close'].values[0]
+        days.insert(0, str(idx)[:6])
+        data.insert(0, [code, open_price, high_price, low_price, close_price])
+
+    set1 = set(map(lambda i: str(i)[:6], df.index.values))
     set2 = set(days)
-    assert set1 == set2
+    assert set1 == set2, "%s\n%s\n" % (code, set1 - set2)
     df2 = pd.DataFrame(
         data, index=days, columns=['code', 'open', 'high', 'low', 'close'])
     df2.to_csv(dst)
