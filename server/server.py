@@ -73,17 +73,22 @@ def get_db_data(code, table, limit=120):
     return data
 
 
-def get_daily_data(code):
+def get_daily_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_daily/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = read_csv("data/ohlc_daily/SZ000001.TXT", nrows=250,
+                       usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_daily/SZ000001.TXT", nrows=250)
-    ohlc_df = ohlc_df.iloc[::-1]
-    macd_df = macd_df.iloc[::-1]
+    if enddate:
+        ohlc_df = ohlc_df.iloc[125::-1]
+        macd_df = macd_df.iloc[125::-1]
+    else:
+        ohlc_df = ohlc_df.iloc[:125:-1]
+        macd_df = macd_df.iloc[:125:-1]
     data['dates'] = ohlc_df.index.values.tolist()
     data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
     for col in macd_df.columns:
@@ -93,13 +98,14 @@ def get_daily_data(code):
         data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
     return data
 
-def get_weekly_data(code):
+def get_weekly_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_weekly/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
+    ohlc_df = read_csv("data/ohlc_weekly/SZ000001.TXT", nrows=250,
+                       usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_weekly/SZ000001.TXT", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
@@ -113,13 +119,15 @@ def get_weekly_data(code):
         data['mas'].append(map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist()))
     return data
 
-def get_monthly_data(code):
+def get_monthly_data(code, enddate):
     data = {
         'dates': [],
         'ohlcs': [],
         'mas': [],
     }
-    ohlc_df = read_csv("data/ohlc_monthly/SZ000001.TXT", nrows=250, usecols=['open', 'close', 'low', 'high'])
+
+    ohlc_df = read_csv("data/ohlc_monthly/SZ000001.TXT", nrows=250,
+                       usecols=['open', 'close', 'low', 'high'])
     ohlc_df = ohlc_df.reindex_axis(['open', 'close', 'low', 'high'], axis=1)
     macd_df = read_csv("data/macd_monthly/SZ000001.TXT", nrows=250)
     ohlc_df = ohlc_df.iloc[::-1]
@@ -241,15 +249,16 @@ class KlineHandler(RequestHandler):
         if not code:
             raise Exception('用户名或密码错误')
         duration = self.get_args('duration')
+        enddate = self.get_args('enddate')
         if duration == 'daily':
-            data = get_db_data(code, 'daily')
-            # data = get_daily_data(code)
+            # data = get_db_data(code, 'daily')
+            data = get_daily_data(code, enddate)
         elif duration == 'weekly':
-            data = get_db_data(code, 'weekly')
-            # data = get_weekly_data(code)
+            #data = get_db_data(code, 'weekly')
+            data = get_weekly_data(code, enddate)
         else:
-            data = get_db_data(code, 'monthly')
-            # data = get_monthly_data(code)
+            # data = get_db_data(code, 'monthly')
+            data = get_monthly_data(code, enddate)
         if not data:
             self.reply_error('数据错误')
         else:
