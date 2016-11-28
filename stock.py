@@ -79,9 +79,21 @@ def trade_cal():
     交易日历
     isOpen=1是交易日，isOpen=0为休市
     '''
+    dst = 'trade.cal.csv'
+    if os.path.exists(dst):
+        df = pd.read_csv(dst, index_col=0)
+        df = df.set_index('calendarDate')
+        return df
+    def date2int(date):
+        y, m, d = date.split("/")
+        return int(y) * 10000 + int(m) * 100 + int(d)
     df = pd.read_csv('http://218.244.146.57/static/calAll.csv')
+    df['calendarDate'] = df['calendarDate'].map(date2int)
+    df.to_csv(dst)
+    df = df.set_index('calendarDate')
     return df
 
+tradecal_df = trade_cal()
 
 def is_holiday(date):
     '''
@@ -159,6 +171,7 @@ def _get_basics():
 
 
 basics_df = _get_basics()
+basics_df['timeToMarket'] = basics_df['timeToMarket'].map(int)
 
 def get_market_date(code):
     try:
@@ -209,14 +222,19 @@ def get_hfq_data(code, start=None, end=None,
     for label in ['open', 'high', 'close', 'low']:
         data[label] = data[label].map(lambda x: '%.2f' % x)
         data[label] = data[label].astype(float)
-        data = data.set_index('date')
-        data = data.sort_index(ascending = False)
+    data = data.set_index('date')
+    data = data.sort_index(ascending = False)
     return data
 
 
+@click.group()
+def cli():
+    pass
+
+@cli.command()
 def get_all_ohlcs():
     info("Start get_all_ohlcs ..")
-    for code in basics_df.index.values:
+    for code in basics_df.index.values[:3]:
         dst = os.path.join(CURDIR, 'ohlc_daily/%s.txt' % code)
         if os.path.exists(dst):
             info("%s exists.." % dst)
@@ -231,18 +249,57 @@ def get_all_ohlcs():
     info("End get_all_ohlcs ..")
 
 
-@click.command
-@click.option('--day', default='', help='日期')
+@cli.command()
+@click.option('--date', default=0, help='日期')
 @click.option('--code', default='000001', help='股票代码')
-def update_ohlc_daily(day, code):
-    pass
+def update_ohlc_daily(date, code):
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(date, "%Y%m%d")
+
+    dt_s = date.strftime("%Y%m%d")
+    dt_i = int(dt_s)
+    dt_d = date.strftime("%Y-%m-%d")
+
+    isOpen = tradecal_df.loc[dt_i]['isOpen']
+    if not isOpen:
+        error("%s is not Open.." % date)
+        return
+    if code == 'ALL':
+        # 在date日（包括）之前上市的股票
+        df = basics_df.loc[(basics_df['timeToMarket'] <= dt_i) & (basics_df['timeToMarket'] > 0) ]
+        codes = df.index.values.tolist()
+    else:
+        codes = [code]
+
+    quart = year_qua(dt_s)
+
+    data = pd.DataFrame()
+    for code in codes[:3]:
+        df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
+        if df is None:  # 可能df为空，比如停牌
+            error("Date=%s, code=%%s is None ." % (date, code))
+            continue
+        else:
+            df = df[df.date==dt_d]
+            df.insert(0, 'code', code)
+            data = data.append(df)
 
 
-
+    data = data.drop('factor', axis=1)
+    data['date'] = dt_i
+    for label in ['open', 'high', 'close', 'low']:
+        data[label] = data[label].map(lambda x: '%.2f' % x)
+        data[label] = data[label].astype(float)
+    data = data.set_index('code')
+    data = data.sort_index(ascending = False)
+    print data
+    return data
 
 
 
 if __name__ == "__main__":
-    get_all_ohlcs()
+    cli()
 
 
