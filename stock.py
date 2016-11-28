@@ -23,6 +23,8 @@ except ImportError:
 from logbook import Logger, FileHandler
 import tushare as ts
 
+import click
+
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
 DATE = str(TODAY.date())
@@ -213,6 +215,7 @@ def get_hfq_data(code, start=None, end=None,
 
 
 def get_all_ohlcs():
+    info("Start get_all_ohlcs ..")
     for code in basics_df.index.values:
         dst = os.path.join(CURDIR, 'ohlc_daily/%s.txt' % code)
         if os.path.exists(dst):
@@ -225,10 +228,21 @@ def get_all_ohlcs():
             df.insert(0, 'code', code)
             df.to_csv(dst, date_format="%Y%m%d")
             info("%s finished.." % dst)
+    info("End get_all_ohlcs ..")
+
+
+@click.command
+@click.option('--day', default='', help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_daily(day, code):
+    pass
+
+
+
+
 
 
 if __name__ == "__main__":
-    info("Start get_all_ohlcs ..")
     get_all_ohlcs()
-    info("End get_all_ohlcs ..")
+
 
