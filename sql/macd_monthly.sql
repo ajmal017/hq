@@ -54,7 +54,8 @@ create table if not exists `macd_monthly` (
 `ma240` float(24, 4),
 `ma245` float(24, 4),
 `ma250` float(24, 4),
-primary key  (`date`, `code`)
+primary key (id),
+index date_code (`date`, code)
 );
 
 show index from macd_monthly;

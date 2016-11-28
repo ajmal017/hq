@@ -10,7 +10,8 @@ create table if not exists `ohlc_daily` (
   `close` float(24, 4),
   `volume` float(24, 4),
   `money` float(24, 4),
-  primary key  (`date`, `code`)
+  primary key (id),
+  index date_code (`date`, code)
 );
 
 show index from ohlc_daily;
@@ -26,7 +27,8 @@ create table if not exists `ohlc_weekly` (
   `high` float(24, 4),
   `low` float(24, 4),
   `close` float(24, 4),
-  primary key  (`date`, `code`)
+  primary key (id),
+  index date_code (`date`, code)
 );
 
 show index from ohlc_weekly;
@@ -42,7 +44,8 @@ create table if not exists `ohlc_monthly` (
   `high` float(24, 4),
   `low` float(24, 4),
   `close` float(24, 4),
-  primary key  (`date`, `code`)
+  primary key (id),
+  index date_code (`date`, code)
 );
 
 show index from ohlc_monthly;
