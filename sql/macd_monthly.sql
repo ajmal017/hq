@@ -1,7 +1,7 @@
 drop table macd_monthly;
 
 create table if not exists `macd_monthly` (
-`id` int(11) not null auto_increment,
+/*`id` int(11) not null auto_increment,*/
 `date` int(11) not null,
 `code` char(6) not null,
 `ma5` float(24, 4),
@@ -54,8 +54,9 @@ create table if not exists `macd_monthly` (
 `ma240` float(24, 4),
 `ma245` float(24, 4),
 `ma250` float(24, 4),
-primary key (id),
-index date_code (`date`, code)
+/*primary key (id),
+index date_code (`date`, code)*/
+primary key (`date`, code)
 );
 
 show index from macd_monthly;

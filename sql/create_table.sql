@@ -1,7 +1,7 @@
 drop table ohlc_daily;
 
 create table if not exists `ohlc_daily` (
-  `id` int(11) not null auto_increment,
+  /*`id` int(11) not null auto_increment,*/
   `date` int(11) not null,
   `code` char(6) not null,
   `open` float(24, 4),
@@ -10,8 +10,9 @@ create table if not exists `ohlc_daily` (
   `close` float(24, 4),
   `volume` float(24, 4),
   `amount` float(24, 4),
-  primary key (id),
-  index date_code (`date`, code)
+  /*  primary key (id),
+  index date_code (`date`, code)*/
+  primary key (`date`, code)
 );
 
 show index from ohlc_daily;
@@ -20,15 +21,16 @@ show index from ohlc_daily;
 drop table ohlc_weekly;
 
 create table if not exists `ohlc_weekly` (
-  `id` int(11) not null auto_increment,
+/*  `id` int(11) not null auto_increment,*/
   `date` int(11) not null,
   `code` char(6) not null,
   `open` float(24, 4),
   `high` float(24, 4),
   `low` float(24, 4),
   `close` float(24, 4),
-  primary key (id),
-  index date_code (`date`, code)
+/*  primary key (id),
+  index date_code (`date`, code)*/
+  primary key (`date`, code)
 );
 
 show index from ohlc_weekly;
@@ -37,15 +39,16 @@ show index from ohlc_weekly;
 drop table ohlc_monthly;
 
 create table if not exists `ohlc_monthly` (
-  `id` int(11) not null auto_increment,
+/*  `id` int(11) not null auto_increment,*/
   `date` int(11) not null,
   `code` char(6) not null,
   `open` float(24, 4),
   `high` float(24, 4),
   `low` float(24, 4),
   `close` float(24, 4),
-  primary key (id),
-  index date_code (`date`, code)
+/*  primary key (id),
+  index date_code (`date`, code) */
+  primary key (`date`, code)
 );
 
 show index from ohlc_monthly;

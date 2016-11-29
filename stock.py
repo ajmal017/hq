@@ -259,7 +259,7 @@ def get_all_ohlcs():
 
 
 def save_to_sql(df, table):
-    return df.to_sql(table, engine, if_exists='append', index=True, index_label='date')
+    return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
 
 def _update_ohlc_daily(date, code):
     if not date:
@@ -303,6 +303,7 @@ def _update_ohlc_daily(date, code):
     data = data.set_index('code')
     data = data.sort_index(ascending = False)
     print data
+    # data.to_sql("ohlc_daily", stock.engine, if_exists='append', index=True, index_label='code')
     return data
 
 

@@ -1,7 +1,7 @@
 drop table macd_daily;
 
 create table if not exists `macd_daily` (
-`id` int(11) not null auto_increment,
+/*`id` int(11) not null auto_increment,*/
 `date` int(11) not null,
 `code` char(6) not null,
 `ma5` float(24, 4),
@@ -54,8 +54,10 @@ create table if not exists `macd_daily` (
 `ma240` float(24, 4),
 `ma245` float(24, 4),
 `ma250` float(24, 4),
+/*
 primary key (id),
-index date_code (`date`, code)
+index date_code (`date`, code)*/
+primary key (`date`, code)
 );
 
 show index from macd_daily;
