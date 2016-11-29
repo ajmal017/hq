@@ -258,8 +258,96 @@ def get_all_ohlcs():
     info("End get_all_ohlcs ..")
 
 
-def save_to_sql(df, table):
-    return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
+def _update_macd_daily(date, code):
+    pass
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_daily(date, code):
+    _update_macd_daily(date, code)
+
+
+def _update_macd_weekly(date, code):
+    pass
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_weekly(date, code):
+    _update_macd_weekly(date, code)
+
+
+def _update_macd_monthly(date, code):
+    pass
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_monthly(date, code):
+    _update_macd_monthly(date, code)
+
+
+def _update_ohlc_weekly(date, code):
+    pass
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_weekly(date, code):
+    _update_ohlc_weekly(date, code)
+
+
+def _update_ohlc_monthly(date, code):
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
+    dt_s = date.strftime("%Y%m%d")
+    dt_i = int(dt_s)
+    dt_d = date.strftime("%Y-%m-%d")
+
+    if code == 'ALL':
+        # 在date日（包括）之前上市的股票
+        df = basics_df.loc[(basics_df['timeToMarket'] <= dt_i) & (basics_df['timeToMarket'] > 0) ]
+        codes = df.index.values.tolist()
+    else:
+        codes = [code]
+    codess = '","'.join(codes)
+    startDate = date.year * 10000 + date.month * 100 + 1
+    endDate = dt_i
+    sql = '''select code, open from
+               ( select date, code, open from ohlc_daily where
+                 date >= %d and date <= %d and code in ("%s") order by date asc)
+             group by code
+             ''' % (startDate, endDate, codess)
+    print sql
+    open_df  = pd.read_sql_query(sql, engine, index_col='code')
+
+    sql = '''select code, close from
+               ( select date, code, close from ohlc_daily where
+                 date >= %d and date <= %d and code in ("%s") order by date desc)
+             group by code
+             ''' % (startDate, endDate, codess)
+    print sql
+    close_df  = pd.read_sql_query(sql, engine, index_col='code')
+
+    sql = '''select code, max(high), min(low)
+             from ohlc_daily where
+             date >= %d and date <= %d and code in ("%s")
+             group by code
+             ''' % (startDate, endDate, codess)
+    print sql
+    hl_df  = pd.read_sql_query(sql, engine, index_col='code')
+
+
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_monthly(date, code):
+    _update_ohlc_monthly(date, code)
+
 
 def _update_ohlc_daily(date, code):
     if not date:
@@ -302,9 +390,10 @@ def _update_ohlc_daily(date, code):
         data[label] = data[label].astype(float)
     data = data.set_index('code')
     data = data.sort_index(ascending = False)
-    print data
+    # print data
     # data.to_sql("ohlc_daily", stock.engine, if_exists='append', index=True, index_label='code')
     return data
+
 
 
 @cli.command()
@@ -312,6 +401,9 @@ def _update_ohlc_daily(date, code):
 @click.option('--code', default='000001', help='股票代码')
 def update_ohlc_daily(date, code):
     _update_ohlc_daily(date, code)
+
+def save_to_sql(df, table):
+    return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
 
 
 if __name__ == "__main__":
