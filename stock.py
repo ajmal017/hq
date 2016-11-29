@@ -25,6 +25,10 @@ import tushare as ts
 
 import click
 
+from sqlalchemy import create_engine
+import config
+engine = create_engine(config.mysqlserver, echo=False)
+
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
 DATE = str(TODAY.date())
@@ -256,7 +260,7 @@ def update_ohlc_daily(date, code):
     if not date:
         date = datetime.datetime.now()
     else:
-        date = datetime.datetime.strptime(date, "%Y%m%d")
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
 
     dt_s = date.strftime("%Y%m%d")
     dt_i = int(dt_s)
@@ -289,7 +293,7 @@ def update_ohlc_daily(date, code):
 
     data = data.drop('factor', axis=1)
     data['date'] = dt_i
-    for label in ['open', 'high', 'close', 'low']:
+    for label in ['open', 'high', 'low', 'close']:
         data[label] = data[label].map(lambda x: '%.2f' % x)
         data[label] = data[label].astype(float)
     data = data.set_index('code')

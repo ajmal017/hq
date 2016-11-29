@@ -9,7 +9,7 @@ create table if not exists `ohlc_daily` (
   `low` float(24, 4),
   `close` float(24, 4),
   `volume` float(24, 4),
-  `money` float(24, 4),
+  `amount` float(24, 4),
   primary key (id),
   index date_code (`date`, code)
 );
