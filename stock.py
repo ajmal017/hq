@@ -253,10 +253,10 @@ def get_all_ohlcs():
     info("End get_all_ohlcs ..")
 
 
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_daily(date, code):
+def save_to_sql(df, table):
+    return df.to_sql(table, engine, if_exists='append', index=True, index_label='date')
+
+def _update_ohlc_daily(date, code):
     if not date:
         date = datetime.datetime.now()
     else:
@@ -290,7 +290,6 @@ def update_ohlc_daily(date, code):
             df.insert(0, 'code', code)
             data = data.append(df)
 
-
     data = data.drop('factor', axis=1)
     data['date'] = dt_i
     for label in ['open', 'high', 'low', 'close']:
@@ -301,6 +300,12 @@ def update_ohlc_daily(date, code):
     print data
     return data
 
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_daily(date, code):
+    _update_ohlc_daily(date, code)
 
 
 if __name__ == "__main__":
