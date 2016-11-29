@@ -26,8 +26,13 @@ import tushare as ts
 import click
 
 from sqlalchemy import create_engine
-import config
-engine = create_engine(config.mysqlserver, echo=False)
+
+try:
+    import config
+    engine = create_engine(config.mysqlserver, echo=False)
+except:
+    engine = None
+
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
