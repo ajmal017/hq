@@ -33,6 +33,7 @@ try:
 except:
     engine = None
 
+DEBUG = 1
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
@@ -304,6 +305,9 @@ def update_macd_daily(date, code):
     _update_macd_daily(date, code)
 
 
+def get_day_date(day):
+    return int(day.strftime("%Y%m%d"))
+
 def get_week_date(day):
     a = day.isocalendar()
     return "%s%02d" % (a[0], a[1])
@@ -366,10 +370,15 @@ def _update_ohlc_between(startDate, endDate, code):
              ''' % (startDate, endDate, codess)
     hl_df  = pd.read_sql_query(sql, engine, index_col='code')
     if len(open_df) > 0:
-        assert open_df.index == close_df.index and close_df.index == hl_df.index
+        set1 = set(open_df.index.values.tolist())
+        set2 = set(close_df.index.values.tolist())
+        set3 = set(hl_df.index.values.tolist())
+        assert set1 == set2
+        assert set2 == set3
         df = pd.concat([open_df, hl_df, close_df], axis=1)
         return df
     return None
+
 
 ONEDAY = datetime.timedelta(days=1)
 
@@ -443,7 +452,9 @@ def _update_ohlc_daily(date, code):
     quart = year_qua(dt_s)
 
     data = pd.DataFrame()
-    for code in codes[:3]:
+    if DEBUG:
+        codes = codes[:3]
+    for code in codes:
         df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
         if df is None:  # 可能df为空，比如停牌
             error("Date=%s, code=%%s is None ." % (date, code))
@@ -477,8 +488,18 @@ def save_to_sql(df, table):
     return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
 
 
-def run_daily(date=20161128):
-    code = '000001'
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='code')
+@click.option('--save/--no-save', default=True, help='保存')
+def run_daily(date, code, save):
+    if not date:
+        day = datetime.datetime.now()
+    else:
+        day = datetime.datetime.strptime(str(date), "%Y%m%d")
+
+    logs = []
+    logs.append("run_daily(date=%s, code=%s, save=%s)" % (date, code, save))
     df1 = _update_ohlc_daily(date, code)
     df2 = _update_ohlc_weekly(date, code)
     df3 = _update_ohlc_monthly(date, code)
@@ -486,9 +507,25 @@ def run_daily(date=20161128):
     print df2
     print df3
 
+    macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
     df4 = _update_macd_daily(date, code)
+    if df4 is not None:
+        df4 = df4[macd_cols]
+        res = engine.execute("delete from macd_daily where date = %s" % get_day_date(day))
+        df4.to_sql('macd_daily', engine, if_exists='append', index=True, index_label='code')
+
     df5 = _update_macd_weekly(date, code)
+    if df5 is not None:
+        df5 = df5[macd_cols]
+        res = engine.execute("delete from macd_weekly where date = %s" % get_week_date(day))
+        df5.to_sql('macd_weekly', engine, if_exists='append', index=True, index_label='code')
+
     df6 = _update_macd_monthly(date, code)
+    if df6 is not None:
+        df6 = df6[macd_cols]
+        res = engine.execute("delete from macd_monthly where date = %s" % get_month_date(day))
+        df6.to_sql("macd_monthly", engine, if_exists='append', index=True, index_label='code')
+
     print df4
     print df5
     print df6
