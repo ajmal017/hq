@@ -101,7 +101,7 @@ def _macd(filename, max_days, data_dir, macd_dir):
     if 'code' not in df2.columns:
         code = filename.split(".")[0]
         df2.insert(0, 'code', code)
-    save_cols = ['code', '5'] + [str(i) for i in range(10, max_days+1, 10)]
+    save_cols = ['code'] + [str(i) for i in range(5, max_days+1, 5)]
     df2.to_csv(csv_path, columns=save_cols)
     return df2
 
@@ -111,6 +111,7 @@ def _macd(filename, max_days, data_dir, macd_dir):
 @click.option('--max-days', default=250, help=u'最大macd周期')
 @click.option('--data-dir', default='data', help=u'数据目录')
 @click.option('--macd-dir', default='macd', help='macd目录')
+@print_time
 def macd(filename, max_days, data_dir, macd_dir):
     '''
     计算移动平均线

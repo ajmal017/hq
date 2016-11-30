@@ -77,7 +77,7 @@ def get_db_data(code, table, enddate='', limit=30):
     data['ohlcs'] = ohlc_df.to_records(index=False).tolist()
     for col in macd_df.columns:
         if col.startswith("ma"):
-            data['mas'][col] = map(lambda i: '-' if math.isnan(i) else i, macd_df[col].values.tolist())
+            data['mas'][col] = map(lambda i: i if i > 0 else '-', macd_df[col].values.tolist())
     return data
 
 
@@ -258,15 +258,15 @@ class KlineHandler(RequestHandler):
         if not code:
             raise Exception('用户名或密码错误')
         duration = self.get_args('duration')
-        enddate = self.get_args('enddate')
+        enddate = self.get_args('enddate', '')
         if duration == 'daily':
-            data = get_db_data(code, 'daily')
+            data = get_db_data(code, 'daily', enddate=enddate)
             # data = get_daily_data(code, enddate)
         elif duration == 'weekly':
-            data = get_db_data(code, 'weekly')
+            data = get_db_data(code, 'weekly', enddate=enddate)
             # data = get_weekly_data(code, enddate)
         else:
-            data = get_db_data(code, 'monthly')
+            data = get_db_data(code, 'monthly', enddate=enddate)
             # data = get_monthly_data(code, enddate)
         if not data:
             self.reply_error('数据错误')

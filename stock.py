@@ -257,9 +257,45 @@ def get_all_ohlcs():
             info("%s finished.." % dst)
     info("End get_all_ohlcs ..")
 
+def _update_macd(date, code, ohlc_table):
+    if code == 'ALL':
+        sql = 'select code from %s where date = %s;' % (ohlc_table, date)
+        df = pd.read_sql_query(sql, engine, index_col='code')
+        codes = df.index.values.tolist()
+    else:
+        codes = [code]
+    if len(codes) == 0:
+        return None
+    sql_format = 'select close from %s where date <= %s and code = "%s" order by date desc limit 250;'
+    idxs = []
+    matrix = []
+    columns = ['ma%s' % i for i in range(1, 251)]
+    for code in codes:
+        sql = sql_format % (ohlc_table, date, code)
+        df = pd.read_sql_query(sql, engine, index_col='close')
+        arr = df.index.values.tolist()
+        n = len(arr)
+        assert n > 0
+        if n < 250:
+            arr += [np.nan] * (250 -n)
+        matrix.append(arr)
+        idxs.append(code)
+    df = pd.DataFrame(matrix, index=idxs, columns=columns)
+    for i in range(2, 251):
+        df['ma%s' % i] += df['ma%s' % (i-1)]
+    for i in range(2, 251):
+        df['ma%s' % i] /= i
+    df['date'] = date
+    return df
 
 def _update_macd_daily(date, code):
-    pass
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
+    d = int(date.strftime("%Y%m%d"))
+    return _update_macd(d, code, 'ohlc_daily')
+
 
 @cli.command()
 @click.option('--date', default=0, help='日期')
@@ -268,8 +304,17 @@ def update_macd_daily(date, code):
     _update_macd_daily(date, code)
 
 
+def get_week_date(day):
+    a = day.isocalendar()
+    return "%s%02d" % (a[0], a[1])
+
 def _update_macd_weekly(date, code):
-    pass
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
+    d = get_week_date(date)
+    return _update_macd(d, code, 'ohlc_weekly')
 
 @cli.command()
 @click.option('--date', default=0, help='日期')
@@ -279,7 +324,13 @@ def update_macd_weekly(date, code):
 
 
 def _update_macd_monthly(date, code):
-    pass
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
+    d = date.year * 100 + date.month
+    return _update_macd(d, code, 'ohlc_monthly')
+
 
 @cli.command()
 @click.option('--date', default=0, help='日期')
@@ -288,8 +339,56 @@ def update_macd_monthly(date, code):
     _update_macd_monthly(date, code)
 
 
+def _update_ohlc_between(startDate, endDate, code):
+    if code == 'ALL':
+        sql = 'select distinct code from ohlc_daily where date >= %s and date <= %s;' % (startDate, endDate)
+        df = pd.read_sql_query(sql, engine, index_col='code')
+        codes = df.index.values.tolist()
+    else:
+        codes = [code]
+    codess = '","'.join(codes)
+    sql = '''select code, open from
+               ( select date, code, open from ohlc_daily where
+                 date >= %d and date <= %d and code in ("%s") order by date asc) as T
+             group by code
+             ''' % (startDate, endDate, codess)
+    open_df  = pd.read_sql_query(sql, engine, index_col='code')
+    sql = '''select code, close from
+               ( select date, code, close from ohlc_daily where
+                 date >= %d and date <= %d and code in ("%s") order by date desc) as T
+             group by code
+             ''' % (startDate, endDate, codess)
+    close_df  = pd.read_sql_query(sql, engine, index_col='code')
+    sql = '''select code, max(high) as high, min(low) as low
+             from ohlc_daily where
+             date >= %d and date <= %d and code in ("%s")
+             group by code
+             ''' % (startDate, endDate, codess)
+    hl_df  = pd.read_sql_query(sql, engine, index_col='code')
+    if len(open_df) > 0:
+        assert open_df.index == close_df.index and close_df.index == hl_df.index
+        df = pd.concat([open_df, hl_df, close_df], axis=1)
+        return df
+    return None
+
+ONEDAY = datetime.timedelta(days=1)
+
 def _update_ohlc_weekly(date, code):
-    pass
+    if not date:
+        date = datetime.datetime.now()
+    else:
+        date = datetime.datetime.strptime(str(date), "%Y%m%d")
+    weekday = date.isocalendar()[2]
+    startDate = int((date - (weekday - 1) * ONEDAY).strftime("%Y%m%d"))
+    endDate = int(date.strftime("%Y%m%d"))
+    df = _update_ohlc_between(startDate, endDate, code)
+    if df is not None:
+        d = get_week_date(date)
+        df['date'] = d
+    return df
+
+def get_month_date(date):
+    return date.year * 100 + date.month
 
 @cli.command()
 @click.option('--date', default=0, help='日期')
@@ -303,42 +402,13 @@ def _update_ohlc_monthly(date, code):
         date = datetime.datetime.now()
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
-    dt_s = date.strftime("%Y%m%d")
-    dt_i = int(dt_s)
-    dt_d = date.strftime("%Y-%m-%d")
-
-    if code == 'ALL':
-        # 在date日（包括）之前上市的股票
-        df = basics_df.loc[(basics_df['timeToMarket'] <= dt_i) & (basics_df['timeToMarket'] > 0) ]
-        codes = df.index.values.tolist()
-    else:
-        codes = [code]
-    codess = '","'.join(codes)
     startDate = date.year * 10000 + date.month * 100 + 1
-    endDate = dt_i
-    sql = '''select code, open from
-               ( select date, code, open from ohlc_daily where
-                 date >= %d and date <= %d and code in ("%s") order by date asc)
-             group by code
-             ''' % (startDate, endDate, codess)
-    print sql
-    open_df  = pd.read_sql_query(sql, engine, index_col='code')
-
-    sql = '''select code, close from
-               ( select date, code, close from ohlc_daily where
-                 date >= %d and date <= %d and code in ("%s") order by date desc)
-             group by code
-             ''' % (startDate, endDate, codess)
-    print sql
-    close_df  = pd.read_sql_query(sql, engine, index_col='code')
-
-    sql = '''select code, max(high), min(low)
-             from ohlc_daily where
-             date >= %d and date <= %d and code in ("%s")
-             group by code
-             ''' % (startDate, endDate, codess)
-    print sql
-    hl_df  = pd.read_sql_query(sql, engine, index_col='code')
+    endDate = int(date.strftime("%Y%m%d"))
+    df = _update_ohlc_between(startDate, endDate, code)
+    if df is not None:
+        d = get_month_date(date)
+        df['date'] = d
+    return df
 
 
 
@@ -402,8 +472,26 @@ def _update_ohlc_daily(date, code):
 def update_ohlc_daily(date, code):
     _update_ohlc_daily(date, code)
 
+
 def save_to_sql(df, table):
     return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
+
+
+def run_daily(date=20161128):
+    code = '000001'
+    df1 = _update_ohlc_daily(date, code)
+    df2 = _update_ohlc_weekly(date, code)
+    df3 = _update_ohlc_monthly(date, code)
+    print df1
+    print df2
+    print df3
+
+    df4 = _update_macd_daily(date, code)
+    df5 = _update_macd_weekly(date, code)
+    df6 = _update_macd_monthly(date, code)
+    print df4
+    print df5
+    print df6
 
 
 if __name__ == "__main__":
