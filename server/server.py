@@ -92,8 +92,8 @@ def get_db_data(code, table, enddate='', limit=120):
 
     t2 = time.time()
 
-    print t1- t0
-    print t2- t1
+    data['t1'] = t1- t0
+    data['t2'] = t2- t1
     return data
 
 
