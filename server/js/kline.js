@@ -42,6 +42,13 @@ function get_option(opData){
             padding: [0, 0, 0, 0]
         },
 
+        grid: {
+            left: '50',
+            right: '1%',
+            bottom: '60',
+            top: '50',
+        },
+
         xAxis: {
             type: 'category',
             data: opData['dates'],
