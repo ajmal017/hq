@@ -3,6 +3,7 @@
 
 import os
 import math
+import time
 import datetime
 import json
 import sys
@@ -61,6 +62,7 @@ def get_db_data(code, table, enddate='', limit=120):
         'mas': {},
     }
 
+    t0 = time.time()
     if enddate:
         sql = 'select date from ohlc_%s where date <= %s and code = "%s" order by date desc limit %s' % (table, enddate, code, limit)
     else:
@@ -77,6 +79,9 @@ def get_db_data(code, table, enddate='', limit=120):
     else:
         macd_sql = 'SELECT %s FROM macd_%s where date > %s and code = "%s" order by date desc limit %s' % (macd_cols, table, startdate, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
+
+
+    t1 = time.time()
     ohlc_df = ohlc_df.iloc[::-1]
     macd_df = macd_df.iloc[::-1]
     data['dates'] = ohlc_df.index.values.tolist()
@@ -84,6 +89,11 @@ def get_db_data(code, table, enddate='', limit=120):
     for col in macd_df.columns:
         if col.startswith("ma"):
             data['mas'][col] = map(lambda i: i if i > 0 else '-', macd_df[col].values.tolist())
+
+    t2 = time.time()
+
+    print t1- t0
+    print t2- t1
     return data
 
 
