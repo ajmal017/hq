@@ -61,19 +61,13 @@ function get_option(opData){
             splitLine: { show: true }
 
         },
-        dataZoom: [
-            {
-                show: true,
-                type: 'slider',
-                // y: '90%',
-                start: 50,
-                end: 100,
-            },
-            {
-                type: 'inside',
-                start: 50,
-                end: 100
-            }],
+        dataZoom: [{
+            show: true,
+            type: 'slider',
+            start: 50,
+            end: 100,
+        }],
+
         animation: false,
         series: series
     };
@@ -90,14 +84,19 @@ function update_series(chart, originOption, opData){
             series[i].data = opData['mas'][series[i].name].concat(series[i].data);
         }
     }
-
+    var n = opData.dates.length;
     var option = {
         series: series,
         xAxis: {
             data: opData['dates'].concat(originOption.xAxis[0].data)
-        }
+        },
+        dataZoom: [{
+            start: null,
+            end: null,
+            startValue: originOption.dataZoom[0].startValue + n,
+            endValue: originOption.dataZoom[0].endValue + n
+        }]
     };
-    console.log(option);
     return option;
 }
 
@@ -118,7 +117,7 @@ function init_chart(chartId){
             var originOption = myChart.getOption();
             var enddate = originOption.xAxis[0].data[0];
             $.post("/stk/kline/"+code, {"duration": chartId, "enddate": enddate}, function (data){
-                if(data['code'] == 0){
+                if(data['code'] == 0 && data.data.n > 0){
                     option = update_series(myChart, originOption, data['data']);
                     myChart.setOption(option);
                 }else{

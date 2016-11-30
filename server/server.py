@@ -56,30 +56,68 @@ def read_csv(csvpath, usecols=[], nrows=None):
 
 
 def get_db_data(code, table, enddate='', limit=120):
+    '''
+    enddate 表示小于这一天的数据
+    '''
     data = {
         'dates': [],
         'ohlcs': [],
         'mas': {},
+        'n': 0,
+        'hasMore': 0
     }
 
     t0 = time.time()
+    # limit+1 表示还没有新的数据
     if enddate:
-        sql = 'select date from ohlc_%s where date <= %s and code = "%s" order by date desc limit %s' % (table, enddate, code, limit)
+        sql = '''select date from ohlc_%s
+        where date < %s and code = "%s"
+        order by date desc limit %s
+        ''' % (table, enddate, code, limit+1)
     else:
-        sql = 'select date from ohlc_%s where date > 0 and code = "%s" order by date desc limit %s' % (table, code, limit)
+        sql = '''select date from ohlc_%s
+        where date > 0 and code = "%s"
+        order by date desc limit %s
+        ''' % (table, code, limit+1)
     date_df = pd.read_sql_query(sql, engine, index_col='date')
-    startdate = date_df.index.values[-1]
-    if enddate:
-        ohlc_sql = 'SELECT %s FROM ohlc_%s where date <= %s and date >= %s and code = "%s" order by date desc limit %s' % (ohlc_cols, table, enddate, startdate, code, limit)
+    nrows = len(date_df.index.values)
+    if nrows == 0:
+        return data
+    elif nrows <= limit:
+        data['n'] = nrows
+        data['hasMore'] = 0
+        startdate = date_df.index.values[-1]
     else:
-        ohlc_sql = 'SELECT %s FROM ohlc_%s where date > %s and code = "%s" order by date desc limit %s' % (ohlc_cols, table, startdate, code, limit)
+        data['n'] = limit
+        data['hasMore'] = 1
+        startdate = date_df.index.values[-2]
+
+    if enddate:
+        ohlc_sql = '''
+        SELECT %s FROM ohlc_%s
+        where date < %s and date >= %s and code = "%s"
+        order by date desc limit %s
+        ''' % (ohlc_cols, table, enddate, startdate, code, limit)
+    else:
+        ohlc_sql = '''
+        SELECT %s FROM ohlc_%s
+        where date > %s and code = "%s"
+        order by date desc limit %s
+        ''' % (ohlc_cols, table, startdate, code, limit)
     ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
     if enddate:
-        macd_sql = 'SELECT %s FROM macd_%s where date <= %s and date >= %s and code = "%s" order by date desc limit %s' % (macd_cols, table, enddate, startdate, code, limit)
+        macd_sql = '''
+        SELECT %s FROM macd_%s
+        where date < %s and date >= %s and code = "%s"
+        order by date desc limit %s
+        ''' % (macd_cols, table, enddate, startdate, code, limit)
     else:
-        macd_sql = 'SELECT %s FROM macd_%s where date > %s and code = "%s" order by date desc limit %s' % (macd_cols, table, startdate, code, limit)
+        macd_sql = '''
+        SELECT %s FROM macd_%s
+        where date > %s and code = "%s"
+        order by date desc limit %s
+        ''' % (macd_cols, table, startdate, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
-
 
     t1 = time.time()
     ohlc_df = ohlc_df.iloc[::-1]
