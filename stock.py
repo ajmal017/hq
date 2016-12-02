@@ -43,17 +43,6 @@ DEBUG = 1
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
 DATE = str(TODAY.date())
-log = Logger('Logbook')
-error_handler = FileHandler(os.path.join(CURDIR, "%s-error.log" % DATE))
-info_handler = FileHandler(os.path.join(CURDIR, "%s-info.log" % DATE))
-
-def error(msg):
-    with error_handler.applicationbound():
-        log.error(msg)
-
-def info(msg):
-    with info_handler.applicationbound():
-        log.info(msg)
 
 
 def year_qua(date):
@@ -88,14 +77,14 @@ def get_quarts(start, end):
     return [str(d).split('Q') for d in idx][::-1]
 
 
-def trade_cal():
+def trade_cal(force=False):
     '''
     http://218.244.146.57/static/calAll.csv
     交易日历
     isOpen=1是交易日，isOpen=0为休市
     '''
-    dst = 'trade.cal.csv'
-    if os.path.exists(dst):
+    dst = os.path.join(CURDIR, 'trade.cal.csv')
+    if os.path.exists(dst) and not force:
         df = pd.read_csv(dst, index_col=0)
         df = df.set_index('calendarDate')
         return df
@@ -106,22 +95,25 @@ def trade_cal():
     df['calendarDate'] = df['calendarDate'].map(date2int)
     df.to_csv(dst)
     df = df.set_index('calendarDate')
+    ytrack.info('update trade_cal from network..')
     return df
+
 
 tradecal_df = trade_cal()
 
-def is_holiday(date):
+def is_open_day(day):
     '''
-    判断是否为交易日，返回True or False
+    isOpen=1是交易日，isOpen=0为休市
     '''
-    df = trade_cal()
-    holiday = df[df.isOpen == 0]['calendarDate'].values
-    if isinstance(date, str):
-        today = datetime.datetime.strptime(date, '%Y-%m-%d')
-    if today.isoweekday() in [6, 7] or date in holiday:
-        return True
-    else:
+    if isinstance(day, datetime.datetime):
+        day = day.year * 10000 + day.month * 100 + day.day
+    try:
+        isOpen = tradecal_df.loc[day]['isOpen']
+        return isOpen == 0
+    except Exception as e:
+        ytrack.error(traceback.format_exc())
         return False
+
 
 
 # 复权数据HEADER
@@ -153,11 +145,13 @@ def _parse_fq_data(url, index, retry_count, pause):
                 df['date'] = df['date'].astype(np.datetime64)
                 df = df.drop_duplicates('date')
         except ValueError as e:
-            error("%s %s" % (url, str(e)))
+            ytrack.fail("_parse_fq_data: %s" % url)
+            ytrack.fail(traceback.format_exc())
             # 时间较早，已经读不到数据
             return None
         except Exception as e:
-            error("%s %s" % (url, str(e)))
+            ytrack.fail("_parse_fq_data: %s" % url)
+            ytrack.fail(traceback.format_exc())
         else:
             return df
     raise IOError("NETWORK_URL_ERROR_MSG")
@@ -173,15 +167,15 @@ def _get_index_url(index, code, qt):
     return url
 
 
-def _get_basics():
-    fle = 'stock.basics.csv'
-    if os.path.exists(fle):
+def _get_basics(force=False):
+    fle = os.path.join(CURDIR, 'stock.basics.csv')
+    if os.path.exists(fle) and not force:
         df = pd.read_csv(fle, dtype=str)
         df = df.set_index('code')
         return df
     df = ts.get_stock_basics()
     df.to_csv(fle, encoding="utf-8")
-    info('update stock_basics from network..')
+    ytrack.info('update stock_basics from network..')
     return df
 
 
@@ -196,7 +190,8 @@ def get_market_date(code):
         d = datetime.datetime.strptime(s, "%Y%m%d")
         return str(d.date())
     except Exception as e:
-        error(str(e))
+        ytrack.fail("get_market_date: %s" % code)
+        ytrack.fail(traceback.format_exc())
         return None
 
 
@@ -246,13 +241,20 @@ def get_hfq_data(code, start=None, end=None,
 def cli():
     pass
 
+
+@cli.command()
+def update_stock_info():
+    _get_basics(True)
+    trade_cal(True)
+    ynotice.send(ytrack.get_logs(), style='stock', title='更新股票基础数据和交易日期')
+
 @cli.command()
 def get_all_ohlcs():
-    info("Start get_all_ohlcs ..")
+    ytrack.info("Start get_all_ohlcs ..")
     for code in basics_df.index.values[:3]:
         dst = os.path.join(CURDIR, 'ohlc_daily/%s.txt' % code)
         if os.path.exists(dst):
-            info("%s exists.." % dst)
+            ytrack.info("%s exists.." % dst)
             continue
         df = get_hfq_data(code)
         if df is None:
@@ -260,8 +262,21 @@ def get_all_ohlcs():
         if 'code' not in df.columns:
             df.insert(0, 'code', code)
             df.to_csv(dst, date_format="%Y%m%d")
-            info("%s finished.." % dst)
-    info("End get_all_ohlcs ..")
+            ytrack.info("%s finished.." % dst)
+    ytrack.info("End get_all_ohlcs ..")
+
+
+ONEDAY = datetime.timedelta(days=1)
+
+def get_day_date(day):
+    return int(day.strftime("%Y%m%d"))
+
+def get_week_date(day):
+    a = day.isocalendar()
+    return "%s%02d" % (a[0], a[1])
+
+def get_month_date(date):
+    return date.year * 100 + date.month
 
 def _update_macd(date, code, ohlc_table):
     if code == 'ALL':
@@ -294,6 +309,7 @@ def _update_macd(date, code, ohlc_table):
     df['date'] = date
     return df
 
+
 def _update_macd_daily(date, code):
     if not date:
         date = datetime.datetime.now()
@@ -303,20 +319,6 @@ def _update_macd_daily(date, code):
     return _update_macd(d, code, 'ohlc_daily')
 
 
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_daily(date, code):
-    _update_macd_daily(date, code)
-
-
-def get_day_date(day):
-    return int(day.strftime("%Y%m%d"))
-
-def get_week_date(day):
-    a = day.isocalendar()
-    return "%s%02d" % (a[0], a[1])
-
 def _update_macd_weekly(date, code):
     if not date:
         date = datetime.datetime.now()
@@ -324,12 +326,6 @@ def _update_macd_weekly(date, code):
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = get_week_date(date)
     return _update_macd(d, code, 'ohlc_weekly')
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_weekly(date, code):
-    _update_macd_weekly(date, code)
 
 
 def _update_macd_monthly(date, code):
@@ -339,13 +335,6 @@ def _update_macd_monthly(date, code):
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = date.year * 100 + date.month
     return _update_macd(d, code, 'ohlc_monthly')
-
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_monthly(date, code):
-    _update_macd_monthly(date, code)
 
 
 def _update_ohlc_between(startDate, endDate, code):
@@ -385,8 +374,6 @@ def _update_ohlc_between(startDate, endDate, code):
     return None
 
 
-ONEDAY = datetime.timedelta(days=1)
-
 def _update_ohlc_weekly(date, code):
     if not date:
         date = datetime.datetime.now()
@@ -400,16 +387,6 @@ def _update_ohlc_weekly(date, code):
         d = get_week_date(date)
         df['date'] = d
     return df
-
-
-def get_month_date(date):
-    return date.year * 100 + date.month
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_weekly(date, code):
-    _update_ohlc_weekly(date, code)
 
 
 def _update_ohlc_monthly(date, code):
@@ -426,14 +403,6 @@ def _update_ohlc_monthly(date, code):
     return df
 
 
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_monthly(date, code):
-    _update_ohlc_monthly(date, code)
-
-
 def _update_ohlc_daily(date, code):
     if not date:
         date = datetime.datetime.now()
@@ -446,7 +415,7 @@ def _update_ohlc_daily(date, code):
 
     isOpen = tradecal_df.loc[dt_i]['isOpen']
     if not isOpen:
-        error("%s is not Open.." % date)
+        ytrack.fail("%s is not Open.." % date)
         return
     if code == 'ALL':
         # 在date日（包括）之前上市的股票
@@ -463,7 +432,7 @@ def _update_ohlc_daily(date, code):
     for code in codes:
         df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
         if df is None:  # 可能df为空，比如停牌
-            error("Date=%s, code=%%s is None ." % (date, code))
+            ytrack.fail("Date=%s, code=%%s is None ." % (date, code))
             continue
         else:
             df = df[df.date==dt_d]
@@ -485,17 +454,6 @@ def _update_ohlc_daily(date, code):
 
 @cli.command()
 @click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_daily(date, code):
-    _update_ohlc_daily(date, code)
-
-
-def save_to_sql(df, table):
-    return df.to_sql(table, engine, if_exists='append', index=True, index_label='code')
-
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
 @click.option('--code', default='000001', help='code')
 @click.option('--save/--no-save', default=True, help='保存')
 def run_daily(date, code, save):
@@ -503,6 +461,11 @@ def run_daily(date, code, save):
         day = datetime.datetime.now()
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
+
+    if is_open_day(day):
+        ytrack.fail("%s is not Open.." % date)
+        ynotice.send(ytrack.get_logs(), style='error', title='%s-不是交易日' % get_day_date(day))
+        return
 
     ytrack.success("start run_daily(date=%s, code=%s, save=%s)" % (date, code, save))
     df1 = _update_ohlc_daily(date, code)
@@ -652,7 +615,47 @@ def run_daily(date, code, save):
     else:
         ytrack.success("macd_monthly 需要更新的数据为空")
 
-    ynotice.send(ytrack.get_logs(), style='stock')
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s-股票K线图更新' % get_day_date(day))
+
+
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_daily(date, code):
+    _update_ohlc_daily(date, code)
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_weekly(date, code):
+    _update_ohlc_weekly(date, code)
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_ohlc_monthly(date, code):
+    _update_ohlc_monthly(date, code)
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_daily(date, code):
+    _update_macd_daily(date, code)
+
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_weekly(date, code):
+    _update_macd_weekly(date, code)
+
+
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='股票代码')
+def update_macd_monthly(date, code):
+    _update_macd_monthly(date, code)
 
 
 if __name__ == "__main__":
