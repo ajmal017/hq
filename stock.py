@@ -7,6 +7,8 @@ import time
 import json
 import math
 import os
+import functools
+import traceback
 
 import lxml.html
 from lxml import etree
@@ -32,6 +34,9 @@ try:
     engine = create_engine(config.mysqlserver, echo=False)
 except:
     engine = None
+
+import yyhtools.track as ytrack
+import yyhtools.notice as ynotice
 
 DEBUG = 1
 
@@ -396,6 +401,7 @@ def _update_ohlc_weekly(date, code):
         df['date'] = d
     return df
 
+
 def get_month_date(date):
     return date.year * 100 + date.month
 
@@ -498,37 +504,156 @@ def run_daily(date, code, save):
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
 
-    logs = []
-    logs.append("run_daily(date=%s, code=%s, save=%s)" % (date, code, save))
+    ytrack.success("start run_daily(date=%s, code=%s, save=%s)" % (date, code, save))
     df1 = _update_ohlc_daily(date, code)
+    if df1 is not None:
+        sql = "delete from ohlc_daily where date = %s" % get_day_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df1.to_sql('ohlc_daily', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("ohlc_daily 成功更新 %s 条记录." % df1.shape[0])
+    else:
+        ytrack.success("ohlc_daily 需要更新的数据为空")
+
+
     df2 = _update_ohlc_weekly(date, code)
+    if df2 is not None:
+        sql = "delete from ohlc_weekly where date = %s" % get_week_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df2.to_sql('ohlc_weekly', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("ohlc_weekly 成功更新 %s 条记录." % df2.shape[0])
+    else:
+        ytrack.success("ohlc_weekly 需要更新的数据为空")
+
     df3 = _update_ohlc_monthly(date, code)
-    print df1
-    print df2
-    print df3
+    if df3 is not None:
+        sql = "delete from ohlc_monthly where date = %s" % get_month_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df3.to_sql('ohlc_monthly', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("ohlc_monthly 成功更新 %s 条记录." % df3.shape[0])
+    else:
+        ytrack.success("ohlc_monthly 需要更新的数据为空")
 
     macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
+
     df4 = _update_macd_daily(date, code)
     if df4 is not None:
         df4 = df4[macd_cols]
-        res = engine.execute("delete from macd_daily where date = %s" % get_day_date(day))
-        df4.to_sql('macd_daily', engine, if_exists='append', index=True, index_label='code')
+        sql = "delete from macd_daily where date = %s" % get_day_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df4.to_sql('macd_daily', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("macd_daily 成功更新 %s 条记录." % df4.shape[0])
+    else:
+        ytrack.success("macd_daily 需要更新的数据为空")
 
     df5 = _update_macd_weekly(date, code)
     if df5 is not None:
         df5 = df5[macd_cols]
-        res = engine.execute("delete from macd_weekly where date = %s" % get_week_date(day))
-        df5.to_sql('macd_weekly', engine, if_exists='append', index=True, index_label='code')
+        sql = "delete from macd_weekly where date = %s" % get_week_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df5.to_sql('macd_weekly', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("macd_weekly 成功更新 %s 条记录." % df5.shape[0])
+    else:
+        ytrack.success("macd_weekly 需要更新的数据为空")
+
+    df5 = _update_macd_weekly(date, code)
+    if df5 is not None:
+        df5 = df5[macd_cols]
+        sql = "delete from macd_weekly where date = %s" % get_week_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
+
+        try:
+            df5.to_sql('macd_weekly', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("macd_weekly 成功更新 %s 条记录." % df5.shape[0])
+    else:
+        ytrack.success("macd_weekly 需要更新的数据为空")
 
     df6 = _update_macd_monthly(date, code)
     if df6 is not None:
         df6 = df6[macd_cols]
-        res = engine.execute("delete from macd_monthly where date = %s" % get_month_date(day))
-        df6.to_sql("macd_monthly", engine, if_exists='append', index=True, index_label='code')
+        sql = "delete from macd_monthly where date = %s" % get_month_date(day)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("删除数据成功")
 
-    print df4
-    print df5
-    print df6
+        try:
+            df6.to_sql('macd_monthly', engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("macd_monthly 成功更新 %s 条记录." % df6.shape[0])
+    else:
+        ytrack.success("macd_monthly 需要更新的数据为空")
+
+    tracks = ytrack.get_tracks()
+    ynotice.send(tracks)
 
 
 if __name__ == "__main__":
