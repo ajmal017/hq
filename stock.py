@@ -136,7 +136,7 @@ def _parse_fq_data(url, index, retry_count, pause):
                 return None
             df = pd.read_html(sarr, skiprows = [0, 1])[0]
             if len(df) == 0:
-                return pd.DataFrame()
+                return None
             if index:
                 df.columns = HIST_FQ_COLS[0:7]
             else:
@@ -154,7 +154,8 @@ def _parse_fq_data(url, index, retry_count, pause):
             ytrack.fail(traceback.format_exc())
         else:
             return df
-    raise IOError("NETWORK_URL_ERROR_MSG")
+    ytrack.fail("_parse_fq_data: retry_count = %s failed,  %s" % (retry_count, url))
+    #raise IOError("NETWORK_URL_ERROR_MSG")
 
 
 def _get_index_url(index, code, qt):
