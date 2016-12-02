@@ -652,8 +652,7 @@ def run_daily(date, code, save):
     else:
         ytrack.success("macd_monthly 需要更新的数据为空")
 
-    tracks = ytrack.get_tracks()
-    ynotice.send(tracks)
+    ynotice.send(ytrack.get_logs(), style='stock')
 
 
 if __name__ == "__main__":
