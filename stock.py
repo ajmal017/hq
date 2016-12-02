@@ -38,7 +38,7 @@ except:
 import yyhtools.track as ytrack
 import yyhtools.notice as ynotice
 
-DEBUG = 1
+DEBUG = 0
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 TODAY = datetime.datetime.today()
@@ -428,7 +428,7 @@ def _update_ohlc_daily(date, code):
 
     data = pd.DataFrame()
     if DEBUG:
-        codes = codes[:3]
+        pass
     for code in codes:
         df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
         if df is None:  # 可能df为空，比如停牌
