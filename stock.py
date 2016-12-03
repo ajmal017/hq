@@ -46,10 +46,19 @@ DATE = str(TODAY.date())
 
 
 def year_qua(date):
-    mon = int(date[5:7])
-    assert 1 <= mon <= 12
+    if isinstance(date, str):
+        assert len(date) in (8, 10)
+        if len(date) == 8:
+            date = datetime.datetime.strptime(date, "%Y%m%d")
+        elif len(date) == 10:
+            date = datetime.datetime.strptime(date, "%Y-%m-%d")
+    else:
+        assert isinstance(date, datetime.datetime)
+
+    mon = date.month
+    assert 1 <= mon <= 12, "%s %s" % (date, mon)
     q = int(math.ceil(mon/3.0))
-    return [date[0:4], str(q)]
+    return [str(date.year), str(q)]
 
 
 def today():
@@ -433,7 +442,7 @@ def _update_ohlc_daily(date, code):
     for code in codes:
         df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
         if df is None:  # 可能df为空，比如停牌
-            ytrack.fail("Date=%s, code=%%s is None ." % (date, code))
+            ytrack.fail("Date=%s, code=%s is None ." % (date, code))
             continue
         else:
             df = df[df.date==dt_d]
