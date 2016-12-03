@@ -236,9 +236,9 @@ def get_hfq_data(code, start=None, end=None,
         return None
 
     data = data.drop_duplicates('date')
-    if drop_factor:
+    if drop_factor and 'factor' in data.columns:
         data = data.drop('factor', axis=1)
-        data = data[(data.date>=start) & (data.date<=end)]
+    data = data[(data.date>=start) & (data.date<=end)]
     for label in ['open', 'high', 'close', 'low']:
         data[label] = data[label].map(lambda x: '%.2f' % x)
         data[label] = data[label].astype(float)
@@ -274,6 +274,28 @@ def get_all_ohlcs():
             df.to_csv(dst, date_format="%Y%m%d")
             ytrack.info("%s finished.." % dst)
     ytrack.info("End get_all_ohlcs ..")
+
+@cli.command()
+def get_hs_indexs():
+    import codes
+
+    ytrack.info("Start get hs indexs ..")
+    for code in codes.hsindexs:
+        dst = os.path.join(CURDIR, "hs_ohlc_daily/%s.txt" % code)
+        if os.path.exists(dst):
+            ytrack.info("%s exists.." % dst)
+            continue
+        df = get_hfq_data(code, index=True, start='1989-01-01', end='2016-12-04')
+        if df is None:
+            continue
+        if 'code' not in df.columns:
+            df.insert(0, 'code', code)
+            df.to_csv(dst, date_format="%Y%m%d")
+            ytrack.info("%s finished.." % dst)
+    ytrack.info("End get_hs_indexs ..")
+    ytrack.show()
+
+
 
 
 ONEDAY = datetime.timedelta(days=1)
