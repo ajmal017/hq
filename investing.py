@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #-*-coding:utf-8-*-
 
+import os
 import six
 import lxml.html
 from lxml import etree
@@ -9,43 +10,38 @@ from pandas.compat import StringIO
 import datetime
 import time
 import requests
+import traceback
 
-def get_data():
+
+def get_data(page_url, api_url, curr_id, columns):
     s = requests.Session()
     s.headers.update(
         {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36",
         }
     )
-
-    s.get('http://cn.investing.com/currencies/eur-usd-historical-data')
-
-
+    time.sleep(0.5)
+    s.get(page_url)
     s.headers.update({
         "X-Requested-With": "XMLHttpRequest"
     })
 
-
     data = {"action": "historical_data",
-            "curr_id": "1",
-            "st_date": "1990/09/01",
-            "end_date": "2016/12/02",
+            "curr_id": str(curr_id),
             "interval_sec": "Daily"}
     end_date = datetime.datetime(2016, 12, 2, 0, 0)
     result = pd.DataFrame()
     while True:
-        time.sleep(0.1)
+        time.sleep(0.5)
         st_date = end_date - datetime.timedelta(days=500)
         data['st_date'] = str(st_date.strftime("%Y/%m/%d"))
         data['end_date'] = str(end_date.strftime("%Y/%m/%d"))
 
-        r = s.post("http://cn.investing.com/instruments/HistoricalDataAjax",
-                   data=data)
-
+        r = s.post(api_url, data=data)
         html = lxml.html.parse(StringIO(r.text))
         try:
             res = html.xpath('//table[@id=\"curr_table\"]')
         except Exception as e:
-            print e
+            print traceback.format_exc()
             break
         if six.PY3:
             sarr = [etree.tostring(node).decode('utf-8') for node in res]
@@ -66,13 +62,31 @@ def get_data():
         if len(df) < 10:
             print df
     if len(result) > 0:
-        result.columns = ['date', 'close', 'open', 'high', 'low', 'percentage']
+        result.columns = columns
         result['date'] = pd.to_datetime(result['date'], format=u"%Y年%m月%d日")
         return result
     return None
 
-df = get_data()
-print df
-if df is not None:
-    df.to_csv("t1.csv")
+
+def get_all_data():
+    from codes import investing_instruments, INVESTING_HOST, INVESTING_API
+    API_URL = INVESTING_HOST + INVESTING_API
+    for t in investing_instruments:
+        dst = "investing/%s.csv" % t["code"]
+        if os.path.exists(dst):
+            print "%s exists.." % dst
+            continue
+
+
+        PAGE_URL = INVESTING_HOST + t["page_url"]
+        df = get_data(PAGE_URL, API_URL, t["curr_id"], t["columns"])
+
+        if df is not None:
+            df.to_csv(dst)
+        else:
+            print "%s is None" % dst
+
+get_all_data()
+
+
 

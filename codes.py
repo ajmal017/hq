@@ -77,3 +77,44 @@ hsindexs = {
 # CBOT小麦
 # http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=W&hy=&breed=W&type=global&start=2016-09-03&end=2016-12-03
 
+class SecurityType(object):
+    GOOD = 1
+
+
+INVESTING_HOST = "http://cn.investing.com"
+INVESTING_API = "/instruments/HistoricalDataAjax"
+COL6 = ['date', 'close', 'open', 'high', 'low', 'percentage']
+COL7 = ['date', 'close', 'open', 'high', 'low', 'amount', 'percentage']
+investing_instruments = [
+    {"name": "黄金",
+     "code": "gold",
+     "type": SecurityType.GOOD,
+     "curr_id": 8830,
+     "page_url": "/commodities/gold-historical-data",
+     "columns": COL7,
+    },
+
+    {"name": "白银",
+     "code": "silver",
+     "type": SecurityType.GOOD,
+     "curr_id": 8836,
+     "page_url": "/commodities/silver-historical-data",
+     "columns": COL7,
+    },
+
+    {"name": "原油",
+     "code": "oil",
+     "type": SecurityType.GOOD,
+     "curr_id": 8849,
+     "page_url": "/commodities/crude-oil-historical-data",
+     "columns": COL7,
+     },
+
+    {"name": "天然气",
+     "code": "gas",
+     "type": SecurityType.GOOD,
+     "curr_id": 8862,
+     "page_url": "/commodities/natural-gas-historical-data",
+     "columns": COL7,
+     },
+]
