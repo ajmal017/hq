@@ -12,15 +12,21 @@ import time
 import requests
 import traceback
 
+import yyhtools
 
-def get_data(page_url, api_url, curr_id, columns):
+DEBUG = True
+
+CURDIR = os.path.abspath(os.path.dirname(__file__))
+
+def get_data(page_url, api_url, curr_id):
     s = requests.Session()
     s.headers.update(
         {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36",
         }
     )
     time.sleep(0.5)
-    s.get(page_url)
+    resp = s.get(page_url)
+
     s.headers.update({
         "X-Requested-With": "XMLHttpRequest"
     })
@@ -41,7 +47,8 @@ def get_data(page_url, api_url, curr_id, columns):
         try:
             res = html.xpath('//table[@id=\"curr_table\"]')
         except Exception as e:
-            print traceback.format_exc()
+            yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
+            yyhtools.error(traceback.format_exc())
             break
         if six.PY3:
             sarr = [etree.tostring(node).decode('utf-8') for node in res]
@@ -61,32 +68,44 @@ def get_data(page_url, api_url, curr_id, columns):
 
         if len(df) < 10:
             print df
+        if DEBUG:
+            break
     if len(result) > 0:
-        result.columns = columns
+        if len(result.columns) == 6:
+            result.columns = ['date', 'close', 'open', 'high', 'low', 'percentage']
+        else:
+            result.columns = ['date', 'close', 'open', 'high', 'low', 'amount', 'percentage']
         result['date'] = pd.to_datetime(result['date'], format=u"%Y年%m月%d日")
         return result
     return None
 
 
-def get_all_data():
-    from codes import investing_instruments, INVESTING_HOST, INVESTING_API
-    API_URL = INVESTING_HOST + INVESTING_API
-    for t in investing_instruments:
-        dst = "investing/%s.csv" % t["code"]
+from codes import debts, goods, indexs, fxpros
+from codes import INVESTING_HOST, INVESTING_API
+
+API_URL = INVESTING_HOST + INVESTING_API
+
+def get_all_data(items, data_dir):
+    if DEBUG:
+        items = items[:1]
+    for t in items:
+        dst = "%s/%s/%s.csv" % (CURDIR, data_dir, t['code'])
         if os.path.exists(dst):
-            print "%s exists.." % dst
+            yyhtools.error("%s exists.." % dst)
             continue
-
-
         PAGE_URL = INVESTING_HOST + t["page_url"]
-        df = get_data(PAGE_URL, API_URL, t["curr_id"], t["columns"])
-
+        df = get_data(PAGE_URL, API_URL, t["curr_id"])
         if df is not None:
             df.to_csv(dst)
+            yyhtools.info("%s finished." % dst)
         else:
-            print "%s is None" % dst
+            yyhtools.error("%s is None" % dst)
 
-get_all_data()
+get_all_data(debts, "ohlc_debts")
+get_all_data(goods, "ohlc_goods")
+get_all_data(indexs, "ohlc_indexs")
+get_all_data(fxpros, "ohlc_fxpros")
 
-
+yyhtools.track.show()
+yyhtools.send(yyhtools.get_logs(), style='stock', title='investing网站数据抓取完成')
 
