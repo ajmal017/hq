@@ -4682,6 +4682,20 @@ goods = [
 ]
 
 indexs = [
+    {"name":"美元指数",
+     "code":"us-dollar-index",
+     "type": SecurityType.INDEX,
+     "curr_id": 8827,
+     "page_url": "/quotes/us-dollar-index-historical-data",
+    },
+
+    {"name":"欧元指数",
+     "code":"investing.com-eur-index",
+     "type": SecurityType.INDEX,
+     "curr_id": 956731,
+     "page_url": "/indices/investing.com-eur-index-historical-data",
+    },
+
 
     {"name": "道琼斯指数",
     "code": "us-30",

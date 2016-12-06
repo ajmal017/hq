@@ -14,7 +14,7 @@ import traceback
 
 import yyhtools
 
-DEBUG = True
+DEBUG = False
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -24,8 +24,16 @@ def get_data(page_url, api_url, curr_id):
         {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36",
         }
     )
-    time.sleep(0.5)
-    resp = s.get(page_url)
+
+    for _ in range(3):
+        try:
+            time.sleep(0.5)
+            resp = s.get(page_url)
+            break
+        except requests.exceptions.ConnectionError as e:
+            yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
+            yyhtools.error(traceback.format_exc())
+            return
 
     s.headers.update({
         "X-Requested-With": "XMLHttpRequest"
@@ -37,12 +45,22 @@ def get_data(page_url, api_url, curr_id):
     end_date = datetime.datetime(2016, 12, 2, 0, 0)
     result = pd.DataFrame()
     while True:
-        time.sleep(0.5)
         st_date = end_date - datetime.timedelta(days=500)
         data['st_date'] = str(st_date.strftime("%Y/%m/%d"))
         data['end_date'] = str(end_date.strftime("%Y/%m/%d"))
+        r = None
+        for _ in range(3):
+            try:
+                time.sleep(0.5)
+                r = s.post(api_url, data=data)
+                break
+            except requests.exceptions.ConnectionError as e:
+                yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
+                yyhtools.error(traceback.format_exc())
+                continue
+        if r is None:
+            break
 
-        r = s.post(api_url, data=data)
         html = lxml.html.parse(StringIO(r.text))
         try:
             res = html.xpath('//table[@id=\"curr_table\"]')
