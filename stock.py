@@ -321,7 +321,7 @@ def get_sina_goods():
         if len(data) > 0:
             data.columns = ['date', 'close', 'open', 'high', 'low', 'volume']
             data.to_csv(dst)
-            ytrack.info("%s finished..")
+            ytrack.info("%s finished.." % good['name'])
         else:
             ytrack.error("%s len is 0")
     ytrack.show()
