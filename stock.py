@@ -300,7 +300,7 @@ def get_hs_indexs():
 def get_sina_goods():
     from codes import add_params, GOODS_URL, goods, get_page, parse_df
     for good in goods:
-        dst = "sina_goods/%s.csv" % good['breed']
+        dst = "%s/sina_goods/%s.csv" % (CURDIR, good['breed'])
         if os.path.exists(dst):
             ytrack.error("%s exists.." % dst)
             continue
