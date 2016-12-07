@@ -4959,5 +4959,5 @@ for i in goods:
 for i in debts:
     assert i['type'] == SecurityType.DEBT
 
-
+code2int = {i['code']: i['curr_id'] for i in fxpros + indexs + goods + debts}
 

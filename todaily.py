@@ -58,8 +58,17 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 
 
 def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
-    dst = os.path.join(CURDIR, dest_dir, filename)
+    if src_type == 'sinagoods':
+        code = filename
+    elif src_type == 'hsindexs':
+        code = filename.split(".")[0]
+    else:
+        from codes import code2int
+        code = code2int[s.replace(".csv", "")]
+
+    dst = os.path.join(CURDIR, dest_dir, "%s.txt" % code)
     src = os.path.join(CURDIR, src_dir, filename)
+    assert src_type in ['sinagoods', 'hsindexs', 'investing']
     if not os.path.exists(src):
         print("%s not exist.." % src)
         return
@@ -67,8 +76,12 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
         print("%s exist.." % dst)
         return
     df = _read_csv(src)
-    code = filename
-    df.to_csv(dst)
+    df.insert(0, 'code', code)
+    df = df.set_index('date')
+    if df.shape[0] > 1 and df.index[0] < df.index[-1]:
+        df = df.iloc[::-1]
+    df.to_csv(dst, columns=['code', 'open', 'high', 'close', 'low'],
+              date_format="%Y%m%d")
     return df
 
 
@@ -76,14 +89,15 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
 @click.option('--filename', default='SZ000001.txt', help=u'文件名')
 @click.option('--src-dir', default='ohlc_data', help=u'源目录')
 @click.option('--dest-dir', default='ohlc_daily', help='目标目录')
+@click.option('--src-type', default='sinagoods', help='srctype')
 @print_time
-def ohlc_daily(filename, src_dir, dest_dir):
+def ohlc_daily(filename, src_dir, dest_dir, src_type):
     if filename == 'ALL':
         filenames = os.listdir(os.path.join(CURDIR, src_dir))
     else:
         filenames = [filename]
-    for filename in filenames:
-        _ohlc_daily(filename, src_dir, dest_dir)
+    for filename in filenames[:1]:
+        _ohlc_daily(filename, src_dir, dest_dir, src_type)
 
 
 if __name__ == "__main__":
