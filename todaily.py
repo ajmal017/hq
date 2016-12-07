@@ -58,9 +58,8 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 
 
 def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
-    if src_type == 'sinagoods':
-        code = filename
-    elif src_type == 'hsindexs':
+    assert src_type in ['sinagoods', 'hsindexs', 'investing']
+    if src_type in ['sinagoods', 'hsindexs']:
         code = filename.split(".")[0]
     else:
         from codes import code2int
@@ -68,7 +67,7 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
 
     dst = os.path.join(CURDIR, dest_dir, "%s.txt" % code)
     src = os.path.join(CURDIR, src_dir, filename)
-    assert src_type in ['sinagoods', 'hsindexs', 'investing']
+
     if not os.path.exists(src):
         print("%s not exist.." % src)
         return
@@ -76,8 +75,13 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
         print("%s exist.." % dst)
         return
     df = _read_csv(src)
-    df.insert(0, 'code', code)
-    df = df.set_index('date')
+    if 'code' not in df.columns:
+        df.insert(0, 'code', code)
+    else:
+        df['code'] = code
+
+    if 'date' in df.columns:
+        df = df.set_index('date')
     if df.shape[0] > 1 and df.index[0] < df.index[-1]:
         df = df.iloc[::-1]
     df.to_csv(dst, columns=['code', 'open', 'high', 'close', 'low'],
