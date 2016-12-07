@@ -57,7 +57,7 @@ def _read_csv(csvpath, usecols=[], nrows=None):
     return df
 
 
-def _ohlc_daily(filename, src_dir, dest_dir):
+def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
     dst = os.path.join(CURDIR, dest_dir, filename)
     src = os.path.join(CURDIR, src_dir, filename)
     if not os.path.exists(src):
@@ -67,6 +67,7 @@ def _ohlc_daily(filename, src_dir, dest_dir):
         print("%s exist.." % dst)
         return
     df = _read_csv(src)
+    code = filename
     df.to_csv(dst)
     return df
 
