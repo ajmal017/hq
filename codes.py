@@ -61,27 +61,81 @@ goods = [
     {'end': '2016-12-03', 'jys': 'CBOT',  'pz': 'W',   'breed': 'W',  'hy':'',  'type': 'global', 'name': 'CBOT小麦'},
 ]
 
-urls = [
-# 伦敦金
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=LIFFE&pz=XAU&hy=&breed=XAU&type=global&start=2016-09-03&end=2016-12-03',
-# 伦敦银
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=LIFFE&pz=XAG&hy=&breed=XAG&type=global&start=2016-09-03&end=2016-12-03',
-# 布伦特原油
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=IPE&pz=OIL&hy=&breed=OIL&type=global&start=2016-09-03&end=2016-12-03',
-# NYME 原油
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=NYME&pz=CL&hy=&breed=CL&type=global&start=2016-09-03&end=2016-12-03',
-# NYME 天然气
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=NYME&pz=NG&hy=&breed=NG&type=global&start=2016-09-03&end=2016-12-03',
-# CBOT黄豆油
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=BO&hy=&breed=BO&type=global&start=2016-09-03&end=2016-12-03',
-# CBOT玉米
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=C&hy=&breed=C&type=global&start=2016-09-03&end=2016-12-03',
-# CBOT黄豆
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=S&hy=&breed=S&type=global&start=2016-09-03&end=2016-12-03',
-# CBOT黄豆粉
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=SM&hy=&breed=SM&type=global&start=2016-09-03&end=2016-12-03',
-# CBOT小麦
-    'http://vip.stock.finance.sina.com.cn/q/view/vFutures_History.php?jys=CBOT&pz=W&hy=&breed=W&type=global&start=2016-09-03&end=2016-12-03',]
+def add_params(url, params):
+    if 'name' in params:
+        params.pop('name')
+    from urllib import urlencode
+    q = urlencode(params)
+    return url + "?" + q
+
+urls = [add_params(GOODS_URL, i) for i in goods]
+import requests
+import time
+import lxml
+import lxml.html
+from lxml import etree
+import pandas as pd
+from cStringIO import StringIO
+try:
+    from urllib.request import urlopen, Request
+except ImportError:
+    from urllib2 import urlopen, Request
+import traceback
+
+import yyhtools
+
+def parse_df(url):
+    for _ in range(3):
+        text = ''
+        try:
+            time.sleep(0.05)
+            request = Request(url)
+            text = urlopen(request, timeout=10).read()
+        except Exception as e:
+            ytrack.fail(traceback.format_exc())
+            continue
+        #text = text.decode('GBK')
+        html = lxml.html.parse(StringIO(text))
+        res = html.xpath('//div[@class=\"historyList\"]/table[1]')
+        sarr = [etree.tostring(node) for node in res]
+        sarr = ''.join(sarr)
+        if sarr == '':
+            return None
+        df = pd.read_html(sarr, skiprows = [0, 1])[0]
+        if len(df) == 0:
+            return None
+        return df
+    return None
 
 
+def get_page(url):
+    time.sleep(0.05)
+    request = Request(url)
+    text = urlopen(request, timeout=10).read()
+    html = lxml.html.parse(StringIO(text))
+    res = html.xpath('//div[@class=\"historyList\"]/table[2]')
+    sarr = [etree.tostring(node) for node in res]
+    sarr = ''.join(sarr)
+    if sarr == '':
+        return 0
+    df = pd.read_html(sarr)[0]
+    if len(df) == 0:
+        return 0
+    txt = df.iloc[0][0]
+    ileft = txt.find(u"共")+1
+    iright = txt.find(u"页", ileft)
+    return int(txt[ileft:iright])
+
+
+if __name__ == "__main__":
+    for u in urls[:1]:
+        df = parse_df(u)
+        assert df is not None
+        df.columns = ['date', 'close', 'open', 'high', 'low', 'volume']
+        print len(df.columns)
+
+    for u in urls[:1]:
+        page = get_page(u)
+        assert page
+        print page
 

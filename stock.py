@@ -296,6 +296,35 @@ def get_hs_indexs():
     ytrack.show()
 
 
+@cli.command()
+def get_sina_goods():
+    from codes import add_params, GOODS_URL, goods, get_page, parse_df
+    for good in goods:
+        dst = "%s/sina_goods/%s.csv" % (CURDIR, good['breed'])
+        if os.path.exists(dst):
+            ytrack.error("%s exists.." % dst)
+            continue
+        url = add_params(GOODS_URL, good)
+        page = get_page(url)
+        if not page:
+            ytrack.fail('%s page is None' % good['name'])
+            continue
+        data = pd.DataFrame()
+        for i in range(1, page+1):
+            good.update({"page": i})
+            url = add_params(GOODS_URL, good)
+            df = parse_df(url)
+            if df is None or len(df) == 0:
+                continue
+            else:
+                data = data.append(df, ignore_index=True)
+        if len(data) > 0:
+            data.columns = ['date', 'close', 'open', 'high', 'low', 'volume']
+            data.to_csv(dst)
+            ytrack.info("%s finished.." % good['name'])
+        else:
+            ytrack.error("%s len is 0")
+    ytrack.show()
 
 
 ONEDAY = datetime.timedelta(days=1)
