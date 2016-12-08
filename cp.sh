@@ -19,12 +19,12 @@ scp sina_ohlc_daily/XAU.txt /data2/sina_goods_ohlc_daily.txt
 scp sina_ohlc_weekly/XAU.txt /data2/sina_goods_ohlc_weekly.txt
 scp sina_ohlc_monthly/XAU.txt /data2/sina_goods_ohlc_monthly.txt
 
-scp investing/investing_macd_daily/XAU.txt /data2/investing_macd_daily.txt
-scp investing/investing_macd_weekly/XAU.txt /data2/investing_macd_weekly.txt
-scp investing/investing_macd_monthly/XAU.txt /data2/investing_macd_monthly.txt
+scp investing/investing_macd_daily/15.txt /data2/investing_macd_daily.txt
+scp investing/investing_macd_weekly/15.txt /data2/investing_macd_weekly.txt
+scp investing/investing_macd_monthly/15.txt /data2/investing_macd_monthly.txt
 
-scp investing/investing_ohlc_daily/XAU.txt /data2/investing_ohlc_daily.txt
-scp investing/investing_ohlc_weekly/XAU.txt /data2/investing_ohlc_weekly.txt
-scp investing/investing_ohlc_monthly/XAU.txt /data2/investing_ohlc_monthly.txt
+scp investing/investing_ohlc_daily/15.txt /data2/investing_ohlc_daily.txt
+scp investing/investing_ohlc_weekly/15.txt /data2/investing_ohlc_weekly.txt
+scp investing/investing_ohlc_monthly/15.txt /data2/investing_ohlc_monthly.txt
 
 
