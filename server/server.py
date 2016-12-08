@@ -55,9 +55,10 @@ def read_csv(csvpath, usecols=[], nrows=None):
     return df
 
 
-def get_db_data(code, table, enddate='', limit=120):
+def get_db_data(src, code, table, enddate='', limit=120):
     '''
-    enddate 表示小于这一天的数据
+    src in ['astock', 'hsindexs', 'sinagoods', 'investing']
+    enddate 表示小于（不包括）这一天的数据
     '''
     data = {
         'dates': [],
@@ -67,18 +68,28 @@ def get_db_data(code, table, enddate='', limit=120):
         'hasMore': 0
     }
 
+    assert src in ['astock', 'hsindexs', 'sinagoods', 'investing']
+    if src == 'hsindexs':
+        table_prefix = 'hs_indexs_'
+    elif src == 'sinagoods':
+        table_prefix = 'sina_goods_'
+    elif src == 'investing':
+        table_prefix = 'investing_'
+    else:
+        table_prefix = ''
+
     t0 = time.time()
     # limit+1 表示还没有新的数据
     if enddate:
-        sql = '''select date from ohlc_%s
+        sql = '''select date from %sohlc_%s
         where date < %s and code = "%s"
         order by date desc limit %s
-        ''' % (table, enddate, code, limit+1)
+        ''' % (table_prefix, table, enddate, code, limit+1)
     else:
-        sql = '''select date from ohlc_%s
+        sql = '''select date from %sohlc_%s
         where date > 0 and code = "%s"
         order by date desc limit %s
-        ''' % (table, code, limit+1)
+        ''' % (table_prefix, table, code, limit+1)
     date_df = pd.read_sql_query(sql, engine, index_col='date')
     nrows = len(date_df.index.values)
     if nrows == 0:
@@ -94,29 +105,29 @@ def get_db_data(code, table, enddate='', limit=120):
 
     if enddate:
         ohlc_sql = '''
-        SELECT %s FROM ohlc_%s
+        SELECT %s FROM %sohlc_%s
         where date < %s and date >= %s and code = "%s"
         order by date desc limit %s
-        ''' % (ohlc_cols, table, enddate, startdate, code, limit)
+        ''' % (ohlc_cols, table_prefix, table, enddate, startdate, code, limit)
     else:
         ohlc_sql = '''
-        SELECT %s FROM ohlc_%s
+        SELECT %s FROM %sohlc_%s
         where date > %s and code = "%s"
         order by date desc limit %s
-        ''' % (ohlc_cols, table, startdate, code, limit)
+        ''' % (ohlc_cols, table_prefix, table, startdate, code, limit)
     ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
     if enddate:
         macd_sql = '''
-        SELECT %s FROM macd_%s
+        SELECT %s FROM %smacd_%s
         where date < %s and date >= %s and code = "%s"
         order by date desc limit %s
-        ''' % (macd_cols, table, enddate, startdate, code, limit)
+        ''' % (macd_cols, table_prefix, table, enddate, startdate, code, limit)
     else:
         macd_sql = '''
-        SELECT %s FROM macd_%s
+        SELECT %s FROM %smacd_%s
         where date > %s and code = "%s"
         order by date desc limit %s
-        ''' % (macd_cols, table, startdate, code, limit)
+        ''' % (macd_cols, table_prefix, table, startdate, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
 
     t1 = time.time()
@@ -298,29 +309,31 @@ class ErrorHandler(RequestHandler):
         self.reply_error('错误的请求路径')
 
 
-@route(r'/stk/kline/(\w+)', name='kline')
+@route(r'/ohlc/(\w+)/(\w+)', name='kline')
 class KlineHandler(RequestHandler):
     '''
     委托下单
+
+    src in ['astock', 'hsindexs', 'sinagoods', 'investing']
     '''
     @try_except
-    def get(self, code):
-        self.render("kline.html", code=code)
+    def get(self, src, code):
+        self.render("kline.html", src=src, code=code)
 
     @try_except
-    def post(self, code):
+    def post(self, src, code):
         if not code:
             raise Exception('用户名或密码错误')
         duration = self.get_args('duration')
         enddate = self.get_args('enddate', '')
         if duration == 'daily':
-            data = get_db_data(code, 'daily', enddate=enddate)
+            data = get_db_data(src, code, 'daily', enddate=enddate)
             # data = get_daily_data(code, enddate)
         elif duration == 'weekly':
-            data = get_db_data(code, 'weekly', enddate=enddate)
+            data = get_db_data(src, code, 'weekly', enddate=enddate)
             # data = get_weekly_data(code, enddate)
         else:
-            data = get_db_data(code, 'monthly', enddate=enddate)
+            data = get_db_data(src, code, 'monthly', enddate=enddate)
             # data = get_monthly_data(code, enddate)
         if not data:
             self.reply_error('数据错误')

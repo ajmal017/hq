@@ -63,7 +63,7 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
         code = filename.split(".")[0]
     else:
         from codes import code2int
-        code = code2int[s.replace(".csv", "")]
+        code = code2int[filename.replace(".csv", "")]
 
     dst = os.path.join(CURDIR, dest_dir, "%s.txt" % code)
     src = os.path.join(CURDIR, src_dir, filename)
@@ -100,7 +100,7 @@ def ohlc_daily(filename, src_dir, dest_dir, src_type):
         filenames = os.listdir(os.path.join(CURDIR, src_dir))
     else:
         filenames = [filename]
-    for filename in filenames[:1]:
+    for filename in filenames:
         _ohlc_daily(filename, src_dir, dest_dir, src_type)
 
 
