@@ -109,10 +109,12 @@ function update_series(chart, originOption, opData){
 
 function init_chart(chartId){
     var myChart = echarts.init(document.getElementById(chartId));
+    var src = $("#monthly").attr('data-src');
     var code = $("#monthly").attr('data-code');
     myChart.showLoading();
 
-    $.post("/stk/kline/"+code, {"duration": chartId}, function (data){
+    var api_url = "/ohlc/" + src + "/"+ code
+    $.post(api_url, {"duration": chartId}, function (data){
         // data = JSON.parse(data);
         myChart.hideLoading();
         option = get_option(data['data']);
@@ -123,7 +125,7 @@ function init_chart(chartId){
         if(params.start == 0){
             var originOption = myChart.getOption();
             var enddate = originOption.xAxis[0].data[0];
-            $.post("/stk/kline/"+code, {"duration": chartId, "enddate": enddate}, function (data){
+            $.post(api_url, {"duration": chartId, "enddate": enddate}, function (data){
                 if(data['code'] == 0 && data.data.n > 0){
                     option = update_series(myChart, originOption, data['data']);
                     myChart.setOption(option);
