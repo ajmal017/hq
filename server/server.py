@@ -314,7 +314,7 @@ class PagesHandler(RequestHandler):
 
     @try_except
     def get(self, page):
-        self.render("html/%s.html")
+        self.render("html/%s.html"%page)
 
 
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
