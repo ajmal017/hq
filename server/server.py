@@ -308,13 +308,21 @@ class ErrorHandler(RequestHandler):
     def post(self, *args, **kwargs):
         self.reply_error('错误的请求路径')
 
+import sinacodes
 
 @route(r'/ohlc/pages/(\w+)', name='pages')
 class PagesHandler(RequestHandler):
 
     @try_except
     def get(self, page):
-        self.render("html/%s.html"%page)
+        html = "html/%s.html" % page
+        if page == 'hsindexs':
+            data = sinacodes.idxs
+        elif page == 'sinagoods':
+            data = sinacodes.goods
+        else:
+            raise Exception("Unknow page.")
+        self.render(html, data=data)
 
 
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
