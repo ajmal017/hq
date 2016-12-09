@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>沪深指数</title>
+{% end %}
+
+{% block wrap %}
+<div id="wrap">
+  <div class="list-group">
+    {% for code, name in data %}
+    <a href="/ohlc/hsindexs/{{code}}" class="list-group-item">{{name}}</a>
+    {% end %}
+  </div>
+</div>
+{% end %}

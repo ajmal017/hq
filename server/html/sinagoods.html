@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>Sina大宗商品</title>
+{% end %}
+
+{% block wrap %}
+<div id="wrap">
+  <div class="list-group">
+    {% for code, name in data %}
+    <a href="/ohlc/sinagoods/{{code}}" class="list-group-item">{{name}}</a>
+    {% end %}
+  </div>
+</div>
+{% end %}
