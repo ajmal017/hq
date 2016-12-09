@@ -309,7 +309,7 @@ class ErrorHandler(RequestHandler):
         self.reply_error('错误的请求路径')
 
 import sinacodes
-
+import istcodes
 @route(r'/ohlc/pages/(\w+)', name='pages')
 class PagesHandler(RequestHandler):
 
@@ -320,6 +320,14 @@ class PagesHandler(RequestHandler):
             data = sinacodes.idxs
         elif page == 'sinagoods':
             data = sinacodes.goods
+        elif page == 'istindexs':
+            data = istcodes.indexs
+        elif page == 'istfxpros':
+            data = istcodes.fxpros
+        elif page == 'istgoods':
+            data = istcodes.goods
+        elif page == 'istdebts':
+            data = istcodes.debts
         else:
             raise Exception("Unknow page.")
         self.render(html, data=data)

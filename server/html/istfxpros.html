@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block head %}
-<title>沪深指数</title>
+<title>外汇</title>
 {% end %}
 
 {% block wrap %}
 <div id="wrap">
   <div class="list-group">
-    {% for code, name in data %}
-    <a href="/ohlc/hsindexs/{{code}}" class="list-group-item">{{name}}</a>
+    {% for i in data %}
+    <a href="/ohlc/investing/{{i['curr_id']}}" class="list-group-item">{{i['name']}}</a>
     {% end %}
   </div>
 </div>
