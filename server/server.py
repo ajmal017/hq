@@ -309,6 +309,14 @@ class ErrorHandler(RequestHandler):
         self.reply_error('错误的请求路径')
 
 
+@route(r'/ohlc/pages/(\w+)', name='pages')
+class PagesHandler(RequestHandler):
+
+    @try_except
+    def get(self, page):
+        self.render("html/%s.html")
+
+
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
 class KlineHandler(RequestHandler):
     '''
@@ -318,7 +326,7 @@ class KlineHandler(RequestHandler):
     '''
     @try_except
     def get(self, src, code):
-        self.render("kline.html", src=src, code=code)
+        self.render("html/kline.html", src=src, code=code)
 
     @try_except
     def post(self, src, code):
