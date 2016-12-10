@@ -534,6 +534,7 @@ def _update_ohlc_daily(date, code, table):
 def run_daily_hs_stocks(date, code, save):
     if not date:
         day = datetime.datetime.now()
+        date = int(day.strftime("%Y%m%d"))
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
 
@@ -614,6 +615,7 @@ def run_daily_hs_stocks(date, code, save):
 def run_daily_hs_indexs(date, code, save):
     if not date:
         day = datetime.datetime.now()
+        date = int(day.strftime("%Y%m%d"))
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
 
