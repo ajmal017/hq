@@ -335,7 +335,7 @@ class PagesHandler(RequestHandler):
             from stock_list limit %s offset %s''' % (page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
-            resp['page'] = page
+            resp['current_page'] = page
             c = engine.execute("select count(code) from stock_list")
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
