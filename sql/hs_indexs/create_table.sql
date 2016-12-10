@@ -2,7 +2,7 @@ drop table hs_indexs_ohlc_daily;
 
 create table if not exists `hs_indexs_ohlc_daily` (
   `date` int(11) not null,
-  `code` char(6) not null,
+  `code` int not null,
   `open` float(24, 4),
   `high` float(24, 4),
   `low` float(24, 4),
@@ -19,7 +19,7 @@ drop table hs_indexs_ohlc_weekly;
 
 create table if not exists `hs_indexs_ohlc_weekly` (
   `date` int(11) not null,
-  `code` char(6) not null,
+  `code` int not null,
   `open` float(24, 4),
   `high` float(24, 4),
   `low` float(24, 4),
@@ -34,7 +34,7 @@ drop table hs_indexs_ohlc_monthly;
 
 create table if not exists `hs_indexs_ohlc_monthly` (
   `date` int(11) not null,
-  `code` char(6) not null,
+  `code` int not null,
   `open` float(24, 4),
   `high` float(24, 4),
   `low` float(24, 4),
@@ -48,7 +48,7 @@ drop table hs_indexs_macd_daily;
 
 create table if not exists `hs_indexs_macd_daily` (
 `date` int(11) not null,
-`code` char(6) not null,
+`code` int not null,
 `ma5` float(24, 4),
 `ma10` float(24, 4),
 `ma15` float(24, 4),
@@ -107,7 +107,7 @@ drop table hs_indexs_macd_monthly;
 
 create table if not exists `hs_indexs_macd_monthly` (
 `date` int(11) not null,
-`code` char(6) not null,
+`code` int not null,
 `ma5` float(24, 4),
 `ma10` float(24, 4),
 `ma15` float(24, 4),
@@ -166,7 +166,7 @@ drop table hs_indexs_macd_weekly;
 
 create table if not exists `hs_indexs_macd_weekly` (
 `date` int(11) not null,
-`code` char(6) not null,
+`code` int not null,
 `ma5` float(24, 4),
 `ma10` float(24, 4),
 `ma15` float(24, 4),
