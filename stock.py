@@ -607,6 +607,86 @@ def run_daily_hs_stocks(date, code, save):
     ynotice.send(ytrack.get_logs(), style='stock', title='%s-沪深股票K线图更新' % get_day_date(day))
 
 
+@cli.command()
+@click.option('--date', default=0, help='日期')
+@click.option('--code', default='000001', help='code')
+@click.option('--save/--no-save', default=True, help='保存')
+def run_daily_hs_indexs(date, code, save):
+    if not date:
+        day = datetime.datetime.now()
+    else:
+        day = datetime.datetime.strptime(str(date), "%Y%m%d")
+
+    if is_open_day(day):
+        ytrack.fail("%s is not Open.." % date)
+        ynotice.send(ytrack.get_logs(), style='error', title='%s-不是交易日' % get_day_date(day))
+        return
+
+    def my_update_someday_data(df, date, save_table):
+        sql = "delete from %s where date = %s" % (save_table, date)
+        ytrack.success("execute: %s" % sql)
+        try:
+            engine.execute(sql)
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("%s删除数据成功" % save_table)
+
+        try:
+            df.to_sql(save_table, engine, if_exists='append', index=True, index_label='code')
+        except:
+            ytrack.fail(traceback.format_exc())
+        else:
+            ytrack.success("%s 成功更新 %s 条记录." % (save_table, df.shape[0]))
+
+
+
+    ytrack.success("start run_daily_hs_indexs(date=%s, code=%s, save=%s)" % (date, code, save))
+
+
+    df1 = _update_ohlc_daily(date, code, 'hs_indexs_ohlc_daily')
+    if df1 is not None:
+        my_update_someday_data(df1, get_day_date(day), "hs_indexs_ohlc_daily")
+    else:
+        ytrack.success("hs_indexs_ohlc_daily 需要更新的数据为空")
+
+    df2 = _update_ohlc_weekly(date, code, 'hs_indexs_ohlc_weekly')
+    if df2 is not None:
+        my_update_someday_data(df2, get_week_date(day), 'hs_indexs_ohlc_weekly')
+    else:
+        ytrack.success("hs_indexs_ohlc_weekly 需要更新的数据为空")
+
+    df3 = _update_ohlc_monthly(date, code, 'hs_indexs_ohlc_monthly')
+    if df3 is not None:
+        my_update_someday_data(df3, get_month_date(day), 'hs_indexs_ohlc_monthly')
+    else:
+        ytrack.success("hs_indexs_ohlc_monthly 需要更新的数据为空")
+
+    macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
+    df4 = _update_macd_daily(date, code, 'hs_indexs_ohlc_daily')
+    if df4 is not None:
+        df4 = df4[macd_cols]
+        my_update_someday_data(df4, get_day_date(day), 'hs_indexs_macd_daily')
+    else:
+        ytrack.success("hs_indexs_macd_daily 需要更新的数据为空")
+
+    df5 = _update_macd_weekly(date, code, 'hs_indexs_ohlc_weekly')
+    if df5 is not None:
+        df5 = df5[macd_cols]
+        my_update_someday_data(df5, get_week_date(day), 'hs_indexs_macd_weekly')
+    else:
+        ytrack.success("hs_indexs_macd_weekly 需要更新的数据为空")
+
+    df6 = _update_macd_monthly(date, code, 'hs_indexs_ohlc_monthly')
+    if df6 is not None:
+        df6 = df6[macd_cols]
+        my_update_someday_data(df6, get_month_date(day), 'hs_indexs_macd_monthly')
+    else:
+        ytrack.success("hs_indexs_macd_monthly 需要更新的数据为空")
+
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s-沪深股票K线图更新' % get_day_date(day))
+
+
 
 
 if __name__ == "__main__":
