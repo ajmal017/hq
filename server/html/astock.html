@@ -6,10 +6,33 @@
 
 {% block wrap %}
 <div id="wrap">
-  <div class="list-group">
-    {% for code, name in data %}
-    <a href="/ohlc/hsindexs/{{code}}" class="list-group-item">{{name}}</a>
-    {% end %}
-  </div>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>code</th>
+        <th>name</th>
+        <th>行业</th>
+        <th>area</th>
+        <th>pe</th>
+        <th>流通股本</th>
+        <th>总股本</th>
+        <th>上市日期</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in data %}
+      <tr>
+        <th scope="row"><a href=/ohlc/astock/{{i[0]}}>{{"%06d" % i[0]}}</a></th>
+        <td>{{i[1]}}</td>
+        <td>{{i[2]}}</td>
+        <td>{{i[3]}}</td>
+        <td>{{i[4]}}</td>
+        <td>{{i[5]}}</td>
+        <td>{{i[6]}}</td>
+        <td>{{i[7]}}</td>
+      </tr>
+      {% end %}
+    </tbody>
+  </table>
 </div>
 {% end %}

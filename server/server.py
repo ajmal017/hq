@@ -325,6 +325,20 @@ class PagesHandler(RequestHandler):
         html = "html/%s.html" % page
         if page == 'hsindexs':
             resp = {"data":sinacodes.idxs}
+        elif page == 'astock':
+            resp = {}
+            page = self.get_args('page', 1, int)
+            page_size = 100
+            skip_size = (page-1) * page_size
+            sql = '''select
+            code, name, industry, area, pe, outstanding, totals, timeToMarket
+            from stock_list limit %s offset %s''' % (page_size, skip_size)
+            a = engine.execute(sql)
+            resp['data'] = a.fetchall()
+            resp['page'] = page
+            c = engine.execute("select count(code) from stock_list")
+            total_rows = c.fetchone()[0]
+            resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
         elif page == 'sinagoods':
             resp = {"data":sinacodes.goods}
         elif page == 'istindexs':
