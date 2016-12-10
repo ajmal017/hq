@@ -71,23 +71,27 @@ def get_db_data(src, code, table, enddate='', limit=120):
     assert src in ['astock', 'hsindexs', 'sinagoods', 'investing']
     if src == 'hsindexs':
         table_prefix = 'hs_indexs_'
+        code = int(code)
     elif src == 'sinagoods':
         table_prefix = 'sina_goods_'
+        code = '"%s"' % code
     elif src == 'investing':
         table_prefix = 'investing_'
+        code = int(code)
     else:
-        table_prefix = ''
+        table_prefix = 'hs_stocks_'
+        code = int(code)
 
     t0 = time.time()
     # limit+1 表示还没有新的数据
     if enddate:
         sql = '''select date from %sohlc_%s
-        where date < %s and code = "%s"
+        where date < %s and code = %s
         order by date desc limit %s
         ''' % (table_prefix, table, enddate, code, limit+1)
     else:
         sql = '''select date from %sohlc_%s
-        where date > 0 and code = "%s"
+        where date > 0 and code = %s
         order by date desc limit %s
         ''' % (table_prefix, table, code, limit+1)
     date_df = pd.read_sql_query(sql, engine, index_col='date')
@@ -106,26 +110,26 @@ def get_db_data(src, code, table, enddate='', limit=120):
     if enddate:
         ohlc_sql = '''
         SELECT %s FROM %sohlc_%s
-        where date < %s and date >= %s and code = "%s"
+        where date < %s and date >= %s and code = %s
         order by date desc limit %s
         ''' % (ohlc_cols, table_prefix, table, enddate, startdate, code, limit)
     else:
         ohlc_sql = '''
         SELECT %s FROM %sohlc_%s
-        where date > %s and code = "%s"
+        where date > %s and code = %s
         order by date desc limit %s
         ''' % (ohlc_cols, table_prefix, table, startdate, code, limit)
     ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
     if enddate:
         macd_sql = '''
         SELECT %s FROM %smacd_%s
-        where date < %s and date >= %s and code = "%s"
+        where date < %s and date >= %s and code = %s
         order by date desc limit %s
         ''' % (macd_cols, table_prefix, table, enddate, startdate, code, limit)
     else:
         macd_sql = '''
         SELECT %s FROM %smacd_%s
-        where date > %s and code = "%s"
+        where date > %s and code = %s
         order by date desc limit %s
         ''' % (macd_cols, table_prefix, table, startdate, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
