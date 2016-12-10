@@ -31,7 +31,7 @@ from sqlalchemy import create_engine
 
 try:
     import config
-    engine = create_engine(config.mysqlserver, echo=False)
+    engine = create_engine(config.mysqlserver, echo=False, encoding="utf-8")
 except:
     engine = None
 
@@ -100,12 +100,17 @@ def trade_cal(force=False):
     def date2int(date):
         y, m, d = date.split("/")
         return int(y) * 10000 + int(m) * 100 + int(d)
-    df = pd.read_csv('http://218.244.146.57/static/calAll.csv')
-    df['calendarDate'] = df['calendarDate'].map(date2int)
-    df.to_csv(dst)
-    df = df.set_index('calendarDate')
-    ytrack.info('update trade_cal from network..')
-    return df
+
+    for _ in range(5):
+        try:
+            df = pd.read_csv('http://218.244.146.57/static/calAll.csv')
+            df['calendarDate'] = df['calendarDate'].map(date2int)
+            df.to_csv(dst)
+            df = df.set_index('calendarDate')
+            ytrack.info('update trade_cal from network..')
+            return df
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
 
 
 tradecal_df = trade_cal()
@@ -183,9 +188,16 @@ def _get_basics(force=False):
         df = pd.read_csv(fle, dtype=str)
         df = df.set_index('code')
         return df
-    df = ts.get_stock_basics()
-    df.to_csv(fle, encoding="utf-8")
-    ytrack.info('update stock_basics from network..')
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_stock_basics()
+            df.to_csv(fle, encoding="utf-8")
+            ytrack.info('update 股票列表 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+    ytrack.info('成功 股票基本信息 from network..')
     return df
 
 
@@ -254,8 +266,131 @@ def cli():
 
 @cli.command()
 def update_stock_info():
-    _get_basics(True)
+
     trade_cal(True)
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_stock_basics()
+            fle = os.path.join(CURDIR, 'stock.basics.csv')
+            df.to_csv(fle, encoding="utf-8")
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_list', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 股票列表 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_industry_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_industry', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 股票行业 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_concept_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_concept', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 股票概念 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_area_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_area', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 股票地域 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_sme_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_sme', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 中小板股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_gem_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_gem', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update 创业板股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_st_classified()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_st', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update st股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_hs300s()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_hs300', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update hs300股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_sz50s()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_sz50s', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update sz50s股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    for _ in range(5):
+        try:
+            time.sleep(0.1)
+            df = ts.get_zz500s()
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_zz500s', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update zz500s股票 save to sql')
+            break
+        except Exception as e:
+            ytrack.error(traceback.format_exc())
+
+    ytrack.info('成功 股票基本信息 from network..')
     ynotice.send(ytrack.get_logs(), style='stock', title='更新股票基础数据和交易日期')
 
 

@@ -25,7 +25,7 @@ import config
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
-engine = create_engine(config.mysqlserver, echo=False)
+engine = create_engine(config.mysqlserver, echo=False, encoding="utf-8")
 
 FROM_SQL = True
 ohlc_cols = ','.join(['date', 'open', 'close', 'low', 'high'])
@@ -272,7 +272,10 @@ def try_except(f):
 class RequestHandler(tornado.web.RequestHandler):
 
     def prepare(self):
-        pass
+        try:
+            engine.table_names()
+        except Exception as e:
+            pass
 
     def on_finish(self):
         pass
@@ -321,20 +324,21 @@ class PagesHandler(RequestHandler):
     def get(self, page):
         html = "html/%s.html" % page
         if page == 'hsindexs':
-            data = sinacodes.idxs
+            resp = {"data":sinacodes.idxs}
         elif page == 'sinagoods':
-            data = sinacodes.goods
+            resp = {"data":sinacodes.goods}
         elif page == 'istindexs':
-            data = istcodes.indexs
+            resp = {"data":istcodes.indexs}
         elif page == 'istfxpros':
-            data = istcodes.fxpros
+            resp = {"data": istcodes.fxpros}
         elif page == 'istgoods':
-            data = istcodes.goods
+            resp = {"data": istcodes.goods}
         elif page == 'istdebts':
-            data = istcodes.debts
+            resp = {"data": istcodes.debts}
         else:
-            raise Exception("Unknow page.")
-        self.render(html, data=data)
+            html = "html/index.html"
+            resp = {}
+        self.render(html, **resp)
 
 
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
