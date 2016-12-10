@@ -293,7 +293,10 @@ def update_stock_info():
             break
         except Exception as e:
             ytrack.error(traceback.format_exc())
+    # ytrack.info('成功 股票基本信息 from network..')
+    # ynotice.send(ytrack.get_logs(), style='stock', title='更新股票基础数据和交易日期')
 
+    # return
     for _ in range(5):
         try:
             time.sleep(0.1)
