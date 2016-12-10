@@ -339,6 +339,12 @@ class PagesHandler(RequestHandler):
             c = engine.execute("select count(code) from stock_list")
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
+        elif page in ['sz50s', 'hs300', 'zz500s']:
+            resp = {}
+            sql = '''select * from stock_%s ''' % page
+            a = engine.execute(sql)
+            resp['data'] = a.fetchall()
+            resp['title'] = page
         elif page == 'sinagoods':
             resp = {"data":sinacodes.goods}
         elif page == 'istindexs':

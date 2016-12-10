@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>{{title}}</title>
+{% end %}
+
+{% block wrap %}
+<div id="wrap">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>code</th>
+        <th>name</th>
+        <th>date</th>
+        <th>weight</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in data %}
+      <tr>
+        <th scope="row"><a href=/ohlc/astock/{{i[0]}}>{{"%06d" % i[0]}}</a></th>
+        <td>{{i[1]}}</td>
+        <td>{{i[2]}}</td>
+        <td>{{i[3]}}</td>
+      </tr>
+      {% end %}
+    </tbody>
+  </table>
+</div>
+{% end %}
