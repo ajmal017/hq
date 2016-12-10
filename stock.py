@@ -258,6 +258,7 @@ def update_stock_info():
     trade_cal(True)
     ynotice.send(ytrack.get_logs(), style='stock', title='更新股票基础数据和交易日期')
 
+
 @cli.command()
 def get_all_ohlcs():
     ytrack.info("Start get_all_ohlcs ..")
@@ -274,6 +275,7 @@ def get_all_ohlcs():
             df.to_csv(dst, date_format="%Y%m%d")
             ytrack.info("%s finished.." % dst)
     ytrack.info("End get_all_ohlcs ..")
+
 
 @cli.command()
 def get_hs_indexs():
@@ -349,6 +351,8 @@ def _update_macd(date, code, ohlc_table):
     codes = map(int, codes)
     if len(codes) == 0:
         return None
+    # 获取 date 当天存在的股票
+
     sql_format = 'select close from %s where date <= %s and code = %s order by date desc limit 250;'
     idxs = []
     matrix = []
@@ -372,34 +376,34 @@ def _update_macd(date, code, ohlc_table):
     return df
 
 
-def _update_macd_daily(date, code):
+def _update_macd_daily(date, code, ohlc_table):
     if not date:
         date = datetime.datetime.now()
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = int(date.strftime("%Y%m%d"))
-    return _update_macd(d, code, 'hs_stocks_ohlc_daily')
+    return _update_macd(d, code, ohlc_table)
 
 
-def _update_macd_weekly(date, code):
+def _update_macd_weekly(date, code, ohlc_table):
     if not date:
         date = datetime.datetime.now()
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = get_week_date(date)
-    return _update_macd(d, code, 'hs_stocks_ohlc_weekly')
+    return _update_macd(d, code, ohlc_table)
 
 
-def _update_macd_monthly(date, code):
+def _update_macd_monthly(date, code, ohlc_table):
     if not date:
         date = datetime.datetime.now()
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = date.year * 100 + date.month
-    return _update_macd(d, code, 'hs_stocks_ohlc_monthly')
+    return _update_macd(d, code, ohlc_table)
 
 
-def _update_ohlc_between(startDate, endDate, code, table='hs_stocks_ohlc_daily'):
+def _update_ohlc_between(startDate, endDate, code, table):
     if code == 'ALL':
         sql = 'select distinct code from %s where date >= %s and date <= %s;' % (table, startDate, endDate)
         df = pd.read_sql_query(sql, engine, index_col='code')
@@ -438,7 +442,8 @@ def _update_ohlc_between(startDate, endDate, code, table='hs_stocks_ohlc_daily')
     return None
 
 
-def _update_ohlc_weekly(date, code):
+def _update_ohlc_weekly(date, code, table):
+    assert table in ['hs_stocks_ohlc_weekly', 'hs_indexs_ohlc_weekly']
     if not date:
         date = datetime.datetime.now()
     else:
@@ -446,28 +451,31 @@ def _update_ohlc_weekly(date, code):
     weekday = date.isocalendar()[2]
     startDate = int((date - (weekday - 1) * ONEDAY).strftime("%Y%m%d"))
     endDate = int(date.strftime("%Y%m%d"))
-    df = _update_ohlc_between(startDate, endDate, code)
+    df = _update_ohlc_between(startDate, endDate, code, table.replace("weekly", "daily"))
     if df is not None:
         d = get_week_date(date)
         df['date'] = d
     return df
 
 
-def _update_ohlc_monthly(date, code):
+def _update_ohlc_monthly(date, code, table):
+    assert table in ['hs_stocks_ohlc_monthly', 'hs_indexs_ohlc_monthly']
     if not date:
         date = datetime.datetime.now()
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     startDate = date.year * 10000 + date.month * 100 + 1
     endDate = int(date.strftime("%Y%m%d"))
-    df = _update_ohlc_between(startDate, endDate, code)
+    df = _update_ohlc_between(startDate, endDate, code, table.replace("monthly", "daily"))
     if df is not None:
         d = get_month_date(date)
         df['date'] = d
     return df
 
 
-def _update_ohlc_daily(date, code):
+def _update_ohlc_daily(date, code, table):
+    assert table in ['hs_stocks_ohlc_daily', 'hs_indexs_ohlc_daily']
+    is_index = True if table == 'hs_indexs_ohlc_daily' else False
     if not date:
         date = datetime.datetime.now()
     else:
@@ -483,8 +491,12 @@ def _update_ohlc_daily(date, code):
         return
     if code == 'ALL':
         # 在date日（包括）之前上市的股票
-        df = basics_df.loc[(basics_df['timeToMarket'] <= dt_i) & (basics_df['timeToMarket'] > 0) ]
-        codes = df.index.values.tolist()
+        if is_index:
+            import sinacodes
+            codes = sinacodes.hsindexs.keys()
+        else:
+            tmpdf = basics_df.loc[(basics_df['timeToMarket'] <= dt_i) & (basics_df['timeToMarket'] > 0) ]
+            codes = tmpdf.index.values.tolist()
     else:
         codes = [code]
 
@@ -494,24 +506,23 @@ def _update_ohlc_daily(date, code):
     if DEBUG:
         pass
     for code in codes:
-        df = _parse_fq_data(_get_index_url(False, code, quart), False, 3, 0.01)
+        df = _parse_fq_data(_get_index_url(is_index, code, quart), is_index, 3, 0.01)
         if df is None:  # 可能df为空，比如停牌
-            ytrack.fail("Date=%s, code=%s is None ." % (date, code))
+            ytrack.fail("Date=%s, code=%s is_index=%s is None ." % (date, code, is_index))
             continue
         else:
             df = df[df.date==dt_d]
             df.insert(0, 'code', code)
             data = data.append(df)
 
-    data = data.drop('factor', axis=1)
+    if 'factor' in data.columns:
+        data = data.drop('factor', axis=1)
     data['date'] = dt_i
     for label in ['open', 'high', 'low', 'close']:
         data[label] = data[label].map(lambda x: '%.2f' % x)
         data[label] = data[label].astype(float)
     data = data.set_index('code')
     data = data.sort_index(ascending = False)
-    # print data
-    # data.to_sql("ohlc_daily", stock.engine, if_exists='append', index=True, index_label='code')
     return data
 
 
@@ -520,7 +531,7 @@ def _update_ohlc_daily(date, code):
 @click.option('--date', default=0, help='日期')
 @click.option('--code', default='000001', help='code')
 @click.option('--save/--no-save', default=True, help='保存')
-def run_daily(date, code, save):
+def run_daily_hs_stocks(date, code, save):
     if not date:
         day = datetime.datetime.now()
     else:
@@ -531,175 +542,71 @@ def run_daily(date, code, save):
         ynotice.send(ytrack.get_logs(), style='error', title='%s-不是交易日' % get_day_date(day))
         return
 
-    ytrack.success("start run_daily(date=%s, code=%s, save=%s)" % (date, code, save))
-    df1 = _update_ohlc_daily(date, code)
-    if df1 is not None:
-        sql = "delete from hs_stocks_ohlc_daily where date = %s" % get_day_date(day)
+    def my_update_someday_data(df, date, save_table):
+        sql = "delete from %s where date = %s" % (save_table, date)
         ytrack.success("execute: %s" % sql)
         try:
             engine.execute(sql)
         except:
             ytrack.fail(traceback.format_exc())
         else:
-            ytrack.success("删除数据成功")
+            ytrack.success("%s删除数据成功" % save_table)
 
         try:
-            df1.to_sql('hs_stocks_ohlc_daily', engine, if_exists='append', index=True, index_label='code')
+            df.to_sql(save_table, engine, if_exists='append', index=True, index_label='code')
         except:
             ytrack.fail(traceback.format_exc())
         else:
-            ytrack.success("hs_stocks_ohlc_daily 成功更新 %s 条记录." % df1.shape[0])
+            ytrack.success("%s 成功更新 %s 条记录." % (save_table, df.shape[0]))
+
+
+
+    ytrack.success("start run_daily_hs_stocks(date=%s, code=%s, save=%s)" % (date, code, save))
+
+
+    df1 = _update_ohlc_daily(date, code, 'hs_stocks_ohlc_daily')
+    if df1 is not None:
+        my_update_someday_data(df1, get_day_date(day), "hs_stocks_ohlc_daily")
     else:
         ytrack.success("hs_stocks_ohlc_daily 需要更新的数据为空")
 
-
-    df2 = _update_ohlc_weekly(date, code)
+    df2 = _update_ohlc_weekly(date, code, 'hs_stocks_ohlc_weekly')
     if df2 is not None:
-        sql = "delete from hs_stocks_ohlc_weekly where date = %s" % get_week_date(day)
-        ytrack.success("execute: %s" % sql)
-        try:
-            engine.execute(sql)
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_ohlc_weekly删除数据成功")
-
-        try:
-            df2.to_sql('hs_stocks_ohlc_weekly', engine, if_exists='append', index=True, index_label='code')
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_ohlc_weekly 成功更新 %s 条记录." % df2.shape[0])
+        my_update_someday_data(df2, get_week_date(day), 'hs_stocks_ohlc_weekly')
     else:
         ytrack.success("hs_stocks_ohlc_weekly 需要更新的数据为空")
 
-    df3 = _update_ohlc_monthly(date, code)
+    df3 = _update_ohlc_monthly(date, code, 'hs_stocks_ohlc_monthly')
     if df3 is not None:
-        sql = "delete from hs_stocks_ohlc_monthly where date = %s" % get_month_date(day)
-        ytrack.success("execute: %s" % sql)
-        try:
-            engine.execute(sql)
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_ohlc_monthly删除数据成功")
-
-        try:
-            df3.to_sql('hs_stocks_ohlc_monthly', engine, if_exists='append', index=True, index_label='code')
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_ohlc_monthly 成功更新 %s 条记录." % df3.shape[0])
+        my_update_someday_data(df3, get_month_date(day), 'hs_stocks_ohlc_monthly')
     else:
         ytrack.success("hs_stocks_ohlc_monthly 需要更新的数据为空")
 
     macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
-
-    df4 = _update_macd_daily(date, code)
+    df4 = _update_macd_daily(date, code, 'hs_stocks_ohlc_daily')
     if df4 is not None:
         df4 = df4[macd_cols]
-        sql = "delete from hs_stocks_macd_daily where date = %s" % get_day_date(day)
-        ytrack.success("execute: %s" % sql)
-        try:
-            engine.execute(sql)
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_daily删除数据成功")
-
-        try:
-            df4.to_sql('hs_stocks_macd_daily', engine, if_exists='append', index=True, index_label='code')
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_daily 成功更新 %s 条记录." % df4.shape[0])
+        my_update_someday_data(df4, get_day_date(day), 'hs_stocks_macd_daily')
     else:
         ytrack.success("hs_stocks_macd_daily 需要更新的数据为空")
 
-    df5 = _update_macd_weekly(date, code)
+    df5 = _update_macd_weekly(date, code, 'hs_stocks_ohlc_weekly')
     if df5 is not None:
         df5 = df5[macd_cols]
-        sql = "delete from hs_stocks_macd_weekly where date = %s" % get_week_date(day)
-        ytrack.success("execute: %s" % sql)
-        try:
-            engine.execute(sql)
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_weekly删除数据成功")
-
-        try:
-            df5.to_sql('hs_stocks_macd_weekly', engine, if_exists='append', index=True, index_label='code')
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_weekly 成功更新 %s 条记录." % df5.shape[0])
+        my_update_someday_data(df5, get_week_date(day), 'hs_stocks_macd_weekly')
     else:
         ytrack.success("hs_stocks_macd_weekly 需要更新的数据为空")
 
-
-    df6 = _update_macd_monthly(date, code)
+    df6 = _update_macd_monthly(date, code, 'hs_stocks_ohlc_monthly')
     if df6 is not None:
         df6 = df6[macd_cols]
-        sql = "delete from hs_stocks_macd_monthly where date = %s" % get_month_date(day)
-        ytrack.success("execute: %s" % sql)
-        try:
-            engine.execute(sql)
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_monthly删除数据成功")
-
-        try:
-            df6.to_sql('hs_stocks_macd_monthly', engine, if_exists='append', index=True, index_label='code')
-        except:
-            ytrack.fail(traceback.format_exc())
-        else:
-            ytrack.success("hs_stocks_macd_monthly 成功更新 %s 条记录." % df6.shape[0])
+        my_update_someday_data(df6, get_month_date(day), 'hs_stocks_macd_monthly')
     else:
         ytrack.success("hs_stocks_macd_monthly 需要更新的数据为空")
 
-    ynotice.send(ytrack.get_logs(), style='stock', title='%s-股票K线图更新' % get_day_date(day))
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s-沪深股票K线图更新' % get_day_date(day))
 
 
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_daily(date, code):
-    _update_ohlc_daily(date, code)
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_weekly(date, code):
-    _update_ohlc_weekly(date, code)
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_ohlc_monthly(date, code):
-    _update_ohlc_monthly(date, code)
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_daily(date, code):
-    _update_macd_daily(date, code)
-
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_weekly(date, code):
-    _update_macd_weekly(date, code)
-
-
-@cli.command()
-@click.option('--date', default=0, help='日期')
-@click.option('--code', default='000001', help='股票代码')
-def update_macd_monthly(date, code):
-    _update_macd_monthly(date, code)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,15 @@ scp hs_ohlc_daily/000001.txt /data2/hs_indexs_ohlc_daily.txt
 scp hs_ohlc_weekly/000001.txt /data2/hs_indexs_ohlc_weekly.txt
 scp hs_ohlc_monthly/000001.txt /data2/hs_indexs_ohlc_monthly.txt
 
+scp macd_daily/000001.txt /data2/hs_stocks_macd_daily.txt
+scp macd_weekly/000001.txt /data2/hs_stocks_macd_weekly.txt
+scp macd_monthly/000001.txt /data2/hs_stocks_macd_monthly.txt
+
+scp ohlc_daily/000001.txt /data2/hs_stocks_ohlc_daily.txt
+scp ohlc_weekly/000001.txt /data2/hs_stocks_ohlc_weekly.txt
+scp ohlc_monthly/000001.txt /data2/hs_stocks_ohlc_monthly.txt
+
+
 scp sina_macd_daily/XAU.txt /data2/sina_goods_macd_daily.txt
 scp sina_macd_weekly/XAU.txt /data2/sina_goods_macd_weekly.txt
 scp sina_macd_monthly/XAU.txt /data2/sina_goods_macd_monthly.txt
