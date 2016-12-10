@@ -11,6 +11,7 @@ import datetime
 import time
 import requests
 import traceback
+import numpy as np
 
 import click
 
@@ -289,7 +290,7 @@ def _update_ohlc_daily(date, curr_id, table):
 
 @click.command()
 @click.option('--date', default=0, help='日期')
-@click.option('--curr_id', default=15, help='curr_id')
+@click.option('--curr-id', default=15, help='curr_id')
 def run_daily_investing(date, curr_id):
     if not date:
         # 由于数据更新日期不统一，默认取三天前数据
