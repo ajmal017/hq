@@ -346,9 +346,10 @@ def _update_macd(date, code, ohlc_table):
         codes = df.index.values.tolist()
     else:
         codes = [code]
+    codes = map(int, codes)
     if len(codes) == 0:
         return None
-    sql_format = 'select close from %s where date <= %s and code = "%s" order by date desc limit 250;'
+    sql_format = 'select close from %s where date <= %s and code = %s order by date desc limit 250;'
     idxs = []
     matrix = []
     columns = ['ma%s' % i for i in range(1, 251)]
@@ -377,7 +378,7 @@ def _update_macd_daily(date, code):
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = int(date.strftime("%Y%m%d"))
-    return _update_macd(d, code, 'ohlc_daily')
+    return _update_macd(d, code, 'hs_stocks_ohlc_daily')
 
 
 def _update_macd_weekly(date, code):
@@ -386,7 +387,7 @@ def _update_macd_weekly(date, code):
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = get_week_date(date)
-    return _update_macd(d, code, 'ohlc_weekly')
+    return _update_macd(d, code, 'hs_stocks_ohlc_weekly')
 
 
 def _update_macd_monthly(date, code):
@@ -395,34 +396,36 @@ def _update_macd_monthly(date, code):
     else:
         date = datetime.datetime.strptime(str(date), "%Y%m%d")
     d = date.year * 100 + date.month
-    return _update_macd(d, code, 'ohlc_monthly')
+    return _update_macd(d, code, 'hs_stocks_ohlc_monthly')
 
 
-def _update_ohlc_between(startDate, endDate, code):
+def _update_ohlc_between(startDate, endDate, code, table='hs_stocks_ohlc_daily'):
     if code == 'ALL':
-        sql = 'select distinct code from ohlc_daily where date >= %s and date <= %s;' % (startDate, endDate)
+        sql = 'select distinct code from %s where date >= %s and date <= %s;' % (table, startDate, endDate)
         df = pd.read_sql_query(sql, engine, index_col='code')
         codes = df.index.values.tolist()
     else:
         codes = [code]
-    codess = '","'.join(codes)
+    # 获取需要更新的代码
+    codess = ','.join(map(str, codes))
+
     sql = '''select code, open from
-               ( select date, code, open from ohlc_daily where
-                 date >= %d and date <= %d and code in ("%s") order by date asc) as T
+               ( select date, code, open from %s where
+                 date >= %d and date <= %d and code in (%s) order by date asc) as T
              group by code
-             ''' % (startDate, endDate, codess)
+             ''' % (table, startDate, endDate, codess)
     open_df  = pd.read_sql_query(sql, engine, index_col='code')
     sql = '''select code, close from
-               ( select date, code, close from ohlc_daily where
-                 date >= %d and date <= %d and code in ("%s") order by date desc) as T
+               ( select date, code, close from %s where
+                 date >= %d and date <= %d and code in (%s) order by date desc) as T
              group by code
-             ''' % (startDate, endDate, codess)
+             ''' % (table, startDate, endDate, codess)
     close_df  = pd.read_sql_query(sql, engine, index_col='code')
     sql = '''select code, max(high) as high, min(low) as low
-             from ohlc_daily where
-             date >= %d and date <= %d and code in ("%s")
+             from %s where
+             date >= %d and date <= %d and code in (%s)
              group by code
-             ''' % (startDate, endDate, codess)
+             ''' % (table, startDate, endDate, codess)
     hl_df  = pd.read_sql_query(sql, engine, index_col='code')
     if len(open_df) > 0:
         set1 = set(open_df.index.values.tolist())
@@ -648,7 +651,7 @@ def run_daily(date, code, save):
             ytrack.success("hs_stocks_macd_monthly删除数据成功")
 
         try:
-            df6.to_sql('macd_monthly', engine, if_exists='append', index=True, index_label='code')
+            df6.to_sql('hs_stocks_macd_monthly', engine, if_exists='append', index=True, index_label='code')
         except:
             ytrack.fail(traceback.format_exc())
         else:
