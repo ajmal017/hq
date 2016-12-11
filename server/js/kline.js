@@ -42,6 +42,19 @@ function get_option(opData){
             padding: [0, 0, 0, 0]
         },
 
+        tooltip: {
+            trigger: 'axis',
+            formatter: '{b0}<br/>oclh<br/>{c0}<br/>',
+            axisPointer: {
+                animation: false,
+                lineStyle: {
+                    color: '#376df4',
+                    width: 2,
+                    opacity: 1
+                }
+            }
+        },
+
         grid: {
             left: '50',
             right: '1%',

@@ -42,8 +42,8 @@ def get_month_date(date):
     return date.year * 100 + date.month
 
 def _update_macd(date, code, ohlc_table):
-    if code == 'ALL':
-        sql = 'select code from %s where date = %s;' % (ohlc_table, date)
+    if code == 0:
+        sql = 'select distinct code from %s where date = %s;' % (ohlc_table, date)
         df = pd.read_sql_query(sql, engine, index_col='code')
         codes = df.index.values.tolist()
     else:
@@ -104,15 +104,17 @@ def _update_macd_monthly(date, code, ohlc_table):
 
 
 def _update_ohlc_between(startDate, endDate, code, table):
-    if code == 'ALL':
+    print startDate, endDate, code, table
+    if code == 0:
         sql = 'select distinct code from %s where date >= %s and date <= %s;' % (table, startDate, endDate)
+        print sql
         df = pd.read_sql_query(sql, engine, index_col='code')
         codes = df.index.values.tolist()
     else:
         codes = [code]
     # 获取需要更新的代码
     codess = ','.join(map(str, codes))
-
+    print codess
     sql = '''select code, open from
                ( select date, code, open from %s where
                  date >= %d and date <= %d and code in (%s) order by date asc) as T
@@ -173,15 +175,18 @@ def _update_ohlc_monthly(date, code, table):
     return df
 
 
+s = requests.Session()
+s.headers.update({
+    "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36"
+})
+s.headers.update({
+    "X-Requested-With": "XMLHttpRequest"
+})
+
 def get_data(page_url, api_url, curr_id, end_date):
     '''
     取 end_date 这一天的数据
     '''
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36"
-    })
-
     for _ in range(3):
         try:
             # time.sleep(0.5)
@@ -192,9 +197,6 @@ def get_data(page_url, api_url, curr_id, end_date):
             yyhtools.error(traceback.format_exc())
             return
 
-    s.headers.update({
-        "X-Requested-With": "XMLHttpRequest"
-    })
 
     data = {"action": "historical_data",
             "curr_id": str(curr_id),
@@ -265,13 +267,17 @@ def _update_ohlc_daily(date, curr_id, table):
     if curr_id == 0:
         items = codes.all_items
     else:
-        item = codes.currid2item.get(curr_id)
+        item = codes.curr_id2item.get(curr_id)
         if not item:
             yyhtools.error("curr_id=%s not fund" % curr_id)
         items = [item]
 
     data = pd.DataFrame()
+    cur_idx = 0
+    total = len(items)
     for t in items:
+        cur_idx +=1
+        print "%s/%s .. " % (cur_idx, total)
         PAGE_URL = INVESTING_HOST + t["page_url"]
         df = get_data(PAGE_URL, API_URL, t["curr_id"], date)
         if df is not None:
@@ -280,8 +286,9 @@ def _update_ohlc_daily(date, curr_id, table):
             else:
                 yyhtools.info("%s(curr_id=%s) 获取重复数据." % (t['name'], t['curr_id']))
                 yyhtools.error(str(df))
-        else:
-            yyhtools.error("%s(curr_id=%s) is None" % (t['name'], t['curr_id']))
+        # else:
+        #     yyhtools.error("%s(curr_id=%s) is None" % (t['name'], t['curr_id']))
+    print "_update_ohlc_daily finished"
     if len(data) == 0:
         return None
     return data
