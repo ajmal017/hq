@@ -4959,5 +4959,9 @@ for i in goods:
 for i in debts:
     assert i['type'] == SecurityType.DEBT
 
-code2int = {i['code']: i['curr_id'] for i in fxpros + indexs + goods + debts}
+
+
+all_items = fxpros + indexs + goods + debts
+currid2item = {i['curr_id']: i for i in all_items}
+code2int = {i['code']: i['curr_id'] for i in all_items}
 

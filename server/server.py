@@ -370,7 +370,31 @@ class KlineHandler(RequestHandler):
     '''
     @try_except
     def get(self, src, code):
-        self.render("html/kline.html", src=src, code=code)
+        resp = {
+            "src": src,
+            "code": code
+        }
+        resp['title'] = "%s_%s" % (src, code)
+        if src == 'hsindexs':
+            resp['title'] = "%s(%06d)" % (sinacodes.hsindexs.get(code, ''), code)
+        elif src == 'sinagoods':
+            for i in sinacodes.goods:
+                if i[0] == code:
+                    resp['title'] ="%s(%s)" % (i[1], code)
+                    break
+        elif src == 'investing':
+            item = istcodes.currid2item.get(int(code))
+            if item:
+                resp['title'] = "%s(%s)" % (item['name'], code)
+        else:
+            # 沪深股票
+            sql = '''select code, name
+            from stock_list where code = %s''' % int(code)
+            a = engine.execute(sql)
+            b = a.fetchone()
+            if b:
+                resp['title'] ="%s(%06d)" % (b[1], b[0])
+        self.render("html/kline.html", **resp)
 
     @try_except
     def post(self, src, code):

@@ -824,7 +824,7 @@ def run_daily_hs_indexs(date, code, save):
     else:
         ytrack.success("hs_indexs_macd_monthly 需要更新的数据为空")
 
-    ynotice.send(ytrack.get_logs(), style='stock', title='%s-沪深股票K线图更新' % get_day_date(day))
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s-沪深指数K线图更新' % get_day_date(day))
 
 
 
