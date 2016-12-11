@@ -376,16 +376,17 @@ class KlineHandler(RequestHandler):
         }
         resp['title'] = "%s_%s" % (src, code)
         if src == 'hsindexs':
-            resp['title'] = "%s(%06d)" % (sinacodes.hsindexs.get(code, ''), code)
+            resp['title'] = "%s(%s)" % (sinacodes.hsindexs.get(code, '').decode("utf-8"), code)
         elif src == 'sinagoods':
             for i in sinacodes.goods:
                 if i[0] == code:
-                    resp['title'] ="%s(%s)" % (i[1], code)
+                    # resp['title'] = i[1]
+                    resp['title'] = "%s(%s)" % (i[1].decode("utf-8"), code)
                     break
         elif src == 'investing':
             item = istcodes.currid2item.get(int(code))
             if item:
-                resp['title'] = "%s(%s)" % (item['name'], code)
+                resp['title'] = "%s(%s)" % (item['name'].decode("utf-8"), code)
         else:
             # 沪深股票
             sql = '''select code, name
