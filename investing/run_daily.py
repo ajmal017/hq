@@ -298,10 +298,12 @@ def _update_ohlc_daily(date, curr_id, table):
 @click.command()
 @click.option('--date', default=0, help='日期')
 @click.option('--curr-id', default=15, help='curr_id')
+@click.option('--n', default=3, help='默认多少天前')
 def run_daily_investing(date, curr_id):
     if not date:
         # 由于数据更新日期不统一，默认取三天前数据
-        day = datetime.datetime.now() - datetime.timedelta(days=3)
+        assert n >= 0, '默认参数n=%s必须大于等于0'
+        day = datetime.datetime.now() - datetime.timedelta(days=n)
         day = day.replace(hour=0, minute=0, second=0, microsecond=0)
         date = int(day.strftime("%Y%m%d"))
     else:
