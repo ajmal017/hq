@@ -299,7 +299,7 @@ def _update_ohlc_daily(date, curr_id, table):
 @click.option('--date', default=0, help='日期')
 @click.option('--curr-id', default=15, help='curr_id')
 @click.option('--n', default=3, help='默认多少天前')
-def run_daily_investing(date, curr_id):
+def run_daily_investing(date, curr_id, n):
     if not date:
         # 由于数据更新日期不统一，默认取三天前数据
         assert n >= 0, '默认参数n=%s必须大于等于0'
