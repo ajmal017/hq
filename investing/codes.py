@@ -9,6 +9,7 @@ class SecurityType(object):
 
 
 INVESTING_HOST = "http://cn.investing.com"
+# INVESTING_HOST = "http://hk.investing.com"
 INVESTING_API = "/instruments/HistoricalDataAjax"
 COL6 = ['date', 'close', 'open', 'high', 'low', 'percentage']
 COL7 = ['date', 'close', 'open', 'high', 'low', 'amount', 'percentage']
