@@ -3,14 +3,12 @@
 
 import os
 import six
-import lxml.html
-from lxml import etree
-import pandas as pd
-from pandas.compat import StringIO
 import datetime
 import time
 import requests
 import traceback
+
+from bs4 import BeautifulSoup
 
 import yyhtools
 
@@ -38,45 +36,24 @@ def get_data():
             return
 
     if r is None:
+        yyhtools.error("requests.get('%s') is None" % page_url)
         return
 
-    html = lxml.html.parse(StringIO(r.text))
-    try:
-        res = html.xpath('//table[@id=\"curr_table\"]')
-    except Exception as e:
-        yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
-        yyhtools.error(traceback.format_exc())
-        break
-    if six.PY3:
-        sarr = [etree.tostring(node).decode('utf-8') for node in res]
-    else:
-        sarr = [etree.tostring(node) for node in res]
-        sarr = ''.join(sarr)
-
-    if sarr == '':
-        break
-    df = pd.read_html(sarr)[0]
-    if len(df) == 0:
-        break
-    if len(df) == 1 and df.iloc[0][u'日期'] == 'No results found...':
-        break
-    result = result.append(df, ignore_index=True)
-    end_date = st_date - datetime.timedelta(days=1)
-
-        if len(df) < 10:
-            print df
-        if DEBUG:
-            break
-    if len(result) > 0:
-        if len(result.columns) == 6:
-            result.columns = ['date', 'close', 'open', 'high', 'low', 'percentage']
-        else:
-            result.columns = ['date', 'close', 'open', 'high', 'low', 'amount', 'percentage']
-        result['date'] = pd.to_datetime(result['date'], format=u"%Y年%m月%d日")
-        return result
-    return None
+    soup = BeautifulSoup(r.text.encode(r.encoding))
+    allnews = soup.findAll("div", {"class": "newsline"})
+    data = []
+    for news in allnews:
+        data.append({
+            'id': long(news.attrs.get('id')),
+            'html': str(news)
+        })
+    for i in data:
+        print i
 
 
-yyhtools.track.show()
-yyhtools.send(yyhtools.get_logs(), style='stock', title='investing网站数据抓取完成')
+
+get_data()
+
+# yyhtools.track.show()
+# yyhtools.send(yyhtools.get_logs(), style='stock', title='investing网站数据抓取完成')
 
