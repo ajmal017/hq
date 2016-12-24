@@ -12,9 +12,13 @@ from bs4 import BeautifulSoup
 
 import yyhtools
 
-DEBUG = False
+from sqlalchemy import create_engine
 
-CURDIR = os.path.abspath(os.path.dirname(__file__))
+try:
+    import config
+    engine = create_engine(config.mysqlserver, echo=False)
+except:
+    engine = None
 
 def get_data():
     page_url = 'http://jin10.com/'
@@ -47,10 +51,20 @@ def get_data():
             'id': long(news.attrs.get('id')),
             'html': str(news)
         })
-    for i in data:
-        print i
 
-
+    my_df = pd.DataFrame(data)
+    my_df = my_df.set_index('id')
+    min_id = my_df.index.min()
+    sql = '''select id from jin10_news where id >= %s''' % min_id
+    hl_df  = pd.read_sql_query(sql, engine, index_col='id')
+    drop_ids = list(set(my_df.index.tolist()) & set(h1_df.index.tolist()))
+    my_df.drop(drop_ids, inplace=True)
+    try:
+        my_df.to_sql('jin10_news', engine, if_exists='append', index=True, index_label='id')
+    except:
+        ytrack.fail(traceback.format_exc())
+    else:
+        ytrack.success("%s 成功更新 %s 条记录." % ('jin10_news', df.shape[0]))
 
 get_data()
 
