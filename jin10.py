@@ -16,7 +16,7 @@ from sqlalchemy import create_engine
 
 try:
     import config
-    engine = create_engine(config.mysqlserver, echo=False)
+    engine = create_engine(config.mysqlserver, echo=False, encoding="utf-8")
 except:
     engine = None
 
@@ -45,29 +45,22 @@ def get_data():
 
     soup = BeautifulSoup(r.text.encode(r.encoding))
     allnews = soup.findAll("div", {"class": "newsline"})
-    data = []
+    cnt = 0
     for news in allnews:
-        data.append({
-            'id': long(news.attrs.get('id')),
-            'html': str(news)
-        })
-
-    my_df = pd.DataFrame(data)
-    my_df = my_df.set_index('id')
-    min_id = my_df.index.min()
-    sql = '''select id from jin10_news where id >= %s''' % min_id
-    hl_df  = pd.read_sql_query(sql, engine, index_col='id')
-    drop_ids = list(set(my_df.index.tolist()) & set(h1_df.index.tolist()))
-    my_df.drop(drop_ids, inplace=True)
-    try:
-        my_df.to_sql('jin10_news', engine, if_exists='append', index=True, index_label='id')
-    except:
-        ytrack.fail(traceback.format_exc())
-    else:
-        ytrack.success("%s 成功更新 %s 条记录." % ('jin10_news', df.shape[0]))
+        try:
+            data = {
+                'id': long(news.attrs.get('id')),
+                'html': str(news)
+            }
+            sql = "insert into jin10_news (id, html) values (%s, '%s');" % (data['id'], data['html'])
+            engine.execute(sql)
+            cnt += 1
+        except:
+            ytrack.fail(traceback.format_exc())
+    ytrack.success("%s 成功更新 %s 条记录." % ('jin10_news', cnt))
 
 get_data()
 
-# yyhtools.track.show()
+yyhtools.track.show()
 # yyhtools.send(yyhtools.get_logs(), style='stock', title='investing网站数据抓取完成')
 
