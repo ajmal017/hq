@@ -344,8 +344,8 @@ class PagesHandler(RequestHandler):
             sql = '''select * from stock_%s ''' % page
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
-            if page in ['hs300', 'zz500s']:
-                resp['data'] = sorted(resp['data'], key=lambda item:item[3], reverse=True)
+            if page in ['hs300', 'zz500s', 'sz50s']:
+                resp['data'] = sorted(resp['data'], key=lambda item:item[1], reverse=True)
             resp['title'] = page
         elif page == 'sinagoods':
             resp = {"data": sinacodes.goods}
