@@ -22,7 +22,7 @@ function get_option(opData){
             showSymbol: false,
             lineStyle: {
                 normal: {
-                    color: 'green',
+                    color: 'yellow',
                     width: 1
                 }
             }
@@ -65,11 +65,11 @@ function get_option(opData){
         xAxis: {
             type: 'category',
             data: opData['dates'],
-            axisLine: { lineStyle: { color: '#8392A5' } }
+            axisLine: { lineStyle: { color: 'red' } }
         },
         yAxis: {
             type: 'log',
-            logBase: 1.1,
+            logBase: 1.05,
             scale: true,
             axisLabel: {
                 formatter: function (value, index) {
@@ -77,8 +77,13 @@ function get_option(opData){
                     return num.toFixed(2);
                 }
             },
-            axisLine: { lineStyle: { color: '#8392A5' } },
-            splitLine: { show: true }
+            axisLine: { lineStyle: { color: 'red' } },
+            splitLine: {
+                show: true,
+                lineStyle: {
+                    type: 'dashed'
+                }
+            }
 
         },
         dataZoom: [{
