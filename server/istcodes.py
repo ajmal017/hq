@@ -21,6 +21,13 @@ fxpros = [
     "page_url": "/currencies/eur-usd-historical-data",
     },
 
+    {"name": "欧元/日元",
+    "code": "eur-jpy",
+    "type": SecurityType.FXPRO,
+    "curr_id": 9,
+    "page_url": "/currencies/eur-jpy-historical-data",
+    },
+
     {"name": "美元/日元",
     "code": "usd-jpy",
     "type": SecurityType.FXPRO,
@@ -33,6 +40,20 @@ fxpros = [
     "type": SecurityType.FXPRO,
     "curr_id": 2,
     "page_url": "/currencies/gbp-usd-historical-data",
+    },
+
+    {"name": "英镑/日元",
+    "code": "gbp-jpy",
+    "type": SecurityType.FXPRO,
+    "curr_id": 11,
+    "page_url": "/currencies/gbp-jpy-historical-data",
+    },
+
+    {"name": "欧元/英镑",
+    "code": "eur-gbp",
+    "type": SecurityType.FXPRO,
+    "curr_id": 6,
+    "page_url": "/currencies/eur-gbp-historical-data",
     },
 
     {"name": "美元/瑞士法郎",
@@ -49,12 +70,6 @@ fxpros = [
     "page_url": "/currencies/usd-cad-historical-data",
     },
 
-    {"name": "欧元/日元",
-    "code": "eur-jpy",
-    "type": SecurityType.FXPRO,
-    "curr_id": 9,
-    "page_url": "/currencies/eur-jpy-historical-data",
-    },
 
     {"name": "澳大利亚元/美元",
     "code": "aud-usd",
@@ -70,12 +85,6 @@ fxpros = [
     "page_url": "/currencies/nzd-usd-historical-data",
     },
 
-    {"name": "欧元/英镑",
-    "code": "eur-gbp",
-    "type": SecurityType.FXPRO,
-    "curr_id": 6,
-    "page_url": "/currencies/eur-gbp-historical-data",
-    },
 
     {"name": "欧元/瑞士法郎",
     "code": "eur-chf",
@@ -89,13 +98,6 @@ fxpros = [
     "type": SecurityType.FXPRO,
     "curr_id": 49,
     "page_url": "/currencies/aud-jpy-historical-data",
-    },
-
-    {"name": "英镑/日元",
-    "code": "gbp-jpy",
-    "type": SecurityType.FXPRO,
-    "curr_id": 11,
-    "page_url": "/currencies/gbp-jpy-historical-data",
     },
 
     {"name": "瑞士法郎/日元",
