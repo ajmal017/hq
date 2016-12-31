@@ -52,7 +52,7 @@
         <a class="page-link" href="#">{{i}} <span class="sr-only">(current)</span></a>
       </li>
       {% else %}
-      <li class="page-item"><a class="page-link" href="{{request.uri[:request.uri.find('?')]+'?page=%s' % i}}">{{i}}</a></li>
+      <li class="page-item"><a class="page-link" href="{{(request.uri[:request.uri.find('?')] if request.uri.find('?') >=0 else request.uri) +'?page=%s' % i}}">{{i}}</a></li>
       {% end %}
       {% end %}
 

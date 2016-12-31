@@ -110,11 +110,17 @@ def get_data(exchange):
     a = engine.execute(sql)
     aa = a.fetchall()
     print len(aa)
+    cnt = 0
     for cid, symbol in aa:
         if not cid:
             continue
-        df = get_ohlc(exchange, cid, symbol)
-        print '%s finished..' % symbol
+        dst = '%s/%s_daily/%s.csv' % (CURDIR, exchange, symbol)
+        if not os.path.exists(dst):
+            print exchange, symbol
+        # df = get_ohlc(exchange, cid, symbol)
+        # print '%s finished..' % symbol
+        cnt += 1
+    print exchange, cnt
 
 get_data('nasdaq')
 print 'nasdaq finished..'
