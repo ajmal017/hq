@@ -40,37 +40,38 @@ proxies = {
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 
 def get_ohlc_enddate(cid, enddate):
-    time.sleep(0.005)
     page_url = 'http://www.google.com.hk/finance/historical?cid=%s&enddate=%s&num=200' % (cid, enddate.strftime("%Y-%m-%d"))
     df = None
-    try:
-        r = s.get(page_url, proxies=proxies)
-        html = lxml.html.parse(StringIO(r.text))
-        res = html.xpath('//table[@class=\"gf-table historical_price\"]')
-        sarr = [etree.tostring(node) for node in res]
-        sarr = ''.join(sarr)
-        if sarr == '':
-            return None
-        df = pd.read_html(sarr, skiprows=[0])[0]
-        if len(df) == 0:
-            return None
-        df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
-        df = df.drop_duplicates('date')
-        if df['date'].dtypes == np.object:
-            df['date'] = df['date'].astype(np.datetime64)
-        return df
-    except Exception as e:
-        print df
-        print "_parse_fq_data: %s %s" % (cid, enddate)
-        print traceback.format_exc()
-        return None
+    for _ in range(3):
+        try:
+            time.sleep(0.005)
+            r = s.get(page_url, proxies=proxies)
+            html = lxml.html.parse(StringIO(r.text))
+            res = html.xpath('//table[@class=\"gf-table historical_price\"]')
+            sarr = [etree.tostring(node) for node in res]
+            sarr = ''.join(sarr)
+            if sarr == '':
+                return None
+            df = pd.read_html(sarr, skiprows=[0])[0]
+            if len(df) == 0:
+                return None
+            df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+            df = df.drop_duplicates('date')
+            if df['date'].dtypes == np.object:
+                df['date'] = df['date'].astype(np.datetime64)
+            return df
+        except Exception as e:
+            print df
+            print "_parse_fq_data: %s %s" % (cid, enddate)
+            print traceback.format_exc()
+            continue
 
 
-def get_ohlc(exchage, cid, symbol):
-    print 'start %s %s %s.. ' % (exchage, cid, symbol)
-    dst = '%s/%s_daily/%s.csv' % (CURDIR, exchage, symbol)
+def get_ohlc(exchange, cid, symbol):
+    print 'start %s %s %s.. ' % (exchange, cid, symbol)
+    dst = '%s/%s_daily/%s.csv' % (CURDIR, exchange, symbol)
     if os.path.exists(dst):
-        ytrack.error('%s exists.' % dst)
+        print '%s exists.' % dst
         return
     data = pd.DataFrame()
     df = get_ohlc_enddate(cid, datetime.datetime.now())
@@ -104,14 +105,15 @@ def get_code(symbol):
         return 0
 
 
-def get_data(exchage):
-    sql = 'select cid, Symbol from us_%s' % exchage
+def get_data(exchange):
+    sql = 'select cid, Symbol from us_%s' % exchange
     a = engine.execute(sql)
     aa = a.fetchall()
+    print len(aa)
     for cid, symbol in aa:
         if not cid:
             continue
-        df = get_ohlc(exchage, cid, symbol)
+        df = get_ohlc(exchange, cid, symbol)
         print '%s finished..' % symbol
 
 get_data('nasdaq')

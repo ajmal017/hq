@@ -87,10 +87,10 @@ def get_data(exchange):
         cids.append(cid)
         # print symbol, cid
     df['cid'] = cids
-    df.to_sql(exchange, engine, if_exists='replace', index=True, index_label='id')
+    df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
 
 
 get_data('nasdaq')
 get_data('nyse')
-# get_data('amex')
+get_data('amex')
 
