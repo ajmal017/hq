@@ -7,8 +7,6 @@ create table if not exists `nyse_ohlc_daily` (
   `high` float(24, 4),
   `low` float(24, 4),
   `close` float(24, 4),
-  `volume` float(24, 4),
-  `amount` float(24, 4),
   primary key (`date`, code)
 );
 
