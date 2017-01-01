@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>各国GDP</title>
+{% end %}
+
+{% block wrap %}
+<div id="gdp" style="width:80%; margin:0 auto;height:600px;"></div>
+<script type="text/javascript" src="{{static_url('js/jquery.min.js')}}"> </script>
+<script type="text/javascript" src="{{static_url('js/echarts.min.js')}}"> </script>
+<script type="text/javascript" src="{{static_url('js/gdp.js')}}"> </script>
+{% end %}
+

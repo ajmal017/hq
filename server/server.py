@@ -358,10 +358,23 @@ class PagesHandler(RequestHandler):
         elif page == 'istdebts':
             resp = {"data": istcodes.debts}
         else:
-            html = "html/index.html"
+            tt = os.path.join(CURDIR, "html", "%s.html" % page)
+            if not os.path.exists(tt):
+                html = "html/index.html"
             resp = {}
         self.render(html, **resp)
 
+
+    @try_except
+    def post(self, page):
+        if not page:
+            raise Exception("wrong page.")
+        if page == 'gdp':
+            import gdp
+            data = gdp.get_data(10)
+            self.reply_data(data)
+        else:
+            raise Exception("unkown page.")
 
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
 class KlineHandler(RequestHandler):
