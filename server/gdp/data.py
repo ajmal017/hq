@@ -39,7 +39,7 @@ def get_data(N=10):
                # 'stack': '总量',
                 'data': []}
         for y in YEARS:
-            item['data'].append(data[y][name])
+            item['data'].append(int(data[y][name]))
         items.append(item)
     resp['years'] = YEARS
     resp['items'] = items
