@@ -1,7 +1,7 @@
 function get_option(opData){
     var option = {
         title: {
-            text: 'gdp(千万$)'
+            text: ''
         },
         tooltip: {
             trigger: 'axis'
