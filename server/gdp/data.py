@@ -9,7 +9,7 @@ import datetime
 
 CURDIR = os.path.abspath(os.path.dirname(__file__))
 DATADIR = os.path.join(CURDIR, "data")
-def get_data(N=10):
+def get_data(N=25):
     ff = os.listdir(DATADIR)
     data = {}
     for f in ff:
@@ -29,7 +29,7 @@ def get_data(N=10):
                 data[year][cty] = gdp
 
     resp = {}
-    YEARS = sorted(data.keys())[20:]  # 去掉前面20年
+    YEARS = sorted(data.keys())  # 去掉前面20年
     topN = sorted(data[YEARS[-1]].items(), key=lambda i: i[1], reverse=True)[:N]
     topN = [i[0] for i in topN]  # 名字
     items = []
@@ -39,7 +39,10 @@ def get_data(N=10):
                # 'stack': '总量',
                 'data': []}
         for y in YEARS:
-            item['data'].append(int(data[y][name]))
+            try:
+                item['data'].append(int(data[y][name]))
+            except:
+                item['data'].append(0)
         items.append(item)
     resp['years'] = YEARS
     resp['items'] = items

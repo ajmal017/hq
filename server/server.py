@@ -371,7 +371,7 @@ class PagesHandler(RequestHandler):
             raise Exception("wrong page.")
         if page == 'gdp':
             import gdp
-            data = gdp.get_data(10)
+            data = gdp.get_data(25)
             self.reply_data(data)
         else:
             raise Exception("unkown page.")
