@@ -51,30 +51,33 @@ proxies = {
   "https": "socks5://127.0.0.1:1080",
 }
 def get_cid(exchange, symbol):
-    time.sleep(0.005)
-    page_url = 'https://www.google.com.hk/finance/historical?q=%s:%s' % (exchange, symbol)
-    r = s.get(page_url, proxies=proxies)
-    html = lxml.html.parse(StringIO(r.text))
-    try:
-        res = html.xpath('//input[@name=\"cid\"]')
-        if len(res) > 0:
-            node = res[0]
-            return node.value
-        return ''
-    except Exception as e:
-        print traceback.format_exc()
-        yyhtools.error(traceback.format_exc())
-        return ''
+    for _ in range(3):
+        try:
+            time.sleep(0.005)
+            page_url = 'https://www.google.com.hk/finance/historical?q=%s:%s' % (exchange, symbol)
+            r = s.get(page_url, proxies=proxies)
+            html = lxml.html.parse(StringIO(r.text))
+            res = html.xpath('//input[@name=\"cid\"]')
+            if len(res) > 0:
+                node = res[0]
+                return node.value
+            return '0'
+        except Exception as e:
+            print traceback.format_exc()
+            yyhtools.error(traceback.format_exc())
+            return '0'
 
 
 def get_data(exchange):
     df = None
     for _ in range(3):
         try:
-            time.sleep(0.5)
+            time.sleep(0.1)
             csv_path = "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange
             df = pd.read_csv(csv_path)
             df['Symbol'] = df['Symbol'].apply(string.strip).apply(string.rstrip)
+            df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
+            ytrack.success("us_%s 数据更新成功" % exchange)
             break
         except requests.exceptions.ConnectionError as e:
             yyhtools.error(traceback.format_exc())
@@ -82,8 +85,22 @@ def get_data(exchange):
     if df is None:
         return
 
-    df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
-    ytrack.success("us_%s 数据更新成功" % exchange)
+    symbols = df['Symbol'].values.tolist()
+    sql = 'select Symbol, cid from us_%s_cid' % exchange
+    try:
+        a = engine.execute(sql)
+        aa = a.fetchall()
+        cids = {}
+        for symbol, cid in aa:
+            cids[symbol] = cid
+        for symbol in symbols:
+            if symbol not in cids:
+                cid = get_cid(exchange, symbol)
+                sql = 'insert into us_%s_cid(Symbol, cid) values("%s", "%s")' % (exchange, symbol, cid)
+                engine.execute(sql)
+                ytrack.success("cid(%s, %s)=%s" % (exchange, symbol, cid))
+    except Exception as e:
+        yyhtools.error(trackback.format_exc())
 
 
 @click.group()
