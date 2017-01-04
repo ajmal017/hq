@@ -12,7 +12,11 @@ import time
 import requests
 import traceback
 import string
+import click
 import yyhtools
+
+import yyhtools.track as ytrack
+import yyhtools.notice as ynotice
 
 DEBUG = False
 from sqlalchemy import create_engine
@@ -39,11 +43,9 @@ except:
 
 
 s = requests.Session()
-s.headers.update(
-    {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36",
-    }
-)
+s.headers.update({
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36",
+})
 proxies = {
   "http": "socks5://127.0.0.1:1080",
   "https": "socks5://127.0.0.1:1080",
@@ -64,6 +66,7 @@ def get_cid(exchange, symbol):
         yyhtools.error(traceback.format_exc())
         return ''
 
+
 def get_data(exchange):
     df = None
     for _ in range(3):
@@ -79,18 +82,31 @@ def get_data(exchange):
     if df is None:
         return
 
-#    n = len(df)
-#    cids = []
-#    for i in range(n):
-#        symbol = df.iloc[i]['Symbol']
-#        cid = get_cid(exchange, symbol)
-#        cids.append(cid)
-        # print symbol, cid
-#    df['cid'] = cids
     df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
+    ytrack.success("us_%s 数据更新成功" % exchange)
 
 
-get_data('nasdaq')
-get_data('nyse')
-get_data('amex')
+@click.group()
+def cli():
+    pass
 
+@cli.command()
+def cids():
+     n = len(df)
+     cids = []
+     for i in range(n):
+         symbol = df.iloc[i]['Symbol']
+         cid = get_cid(exchange, symbol)
+         cids.append(cid)
+         print symbol, cid
+
+@cli.command()
+def stocks():
+    d = datetime.datetime.now().strftime("%Y%m%d")
+    get_data('nasdaq')
+    get_data('nyse')
+    get_data('amex')
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s美股列表更新成功' % d)
+
+if __name__ == "__main__":
+    cli()

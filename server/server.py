@@ -68,7 +68,7 @@ def get_db_data(src, code, table, enddate='', limit=120):
         'hasMore': 0
     }
 
-    assert src in ['astock', 'hsindexs', 'sinagoods', 'investing']
+    assert src in ['astock', 'hsindexs', 'sinagoods', 'investing', 'nasdaq', 'nyse', 'amex']
     if src == 'hsindexs':
         table_prefix = 'hs_indexs_'
         code = int(code)
@@ -77,6 +77,9 @@ def get_db_data(src, code, table, enddate='', limit=120):
         code = '"%s"' % code
     elif src == 'investing':
         table_prefix = 'investing_'
+        code = int(code)
+    elif src in ('nasdaq', 'nyse', 'amex'):
+        table_prefix = '%s_' % src
         code = int(code)
     else:
         table_prefix = 'hs_stocks_'
@@ -339,18 +342,18 @@ class PagesHandler(RequestHandler):
             c = engine.execute("select count(code) from stock_list")
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
-        elif page == 'nasdaq':
+        elif page in ('nasdaq', 'nyse', 'amex'):
+            html_page = page
             resp = {}
             page = self.get_args('page', 1, int)
             page_size = 100
             skip_size = (page-1) * page_size
-            sql = '''select
-            code, name, industry, area, pe, outstanding, totals, timeToMarket
-            from stock_list limit %s offset %s''' % (page_size, skip_size)
+            sql = '''select Symbol, Name, LastSale, MarketCap, industry, IPOYear
+            from us_%s limit %s offset %s''' % (html_page, page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             resp['current_page'] = page
-            c = engine.execute("select count(code) from stock_list")
+            c = engine.execute("select count(id) from us_%s" % html_page)
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
         elif page in ['sz50s', 'hs300', 'zz500s']:
@@ -416,6 +419,15 @@ class KlineHandler(RequestHandler):
             item = istcodes.currid2item.get(int(code))
             if item:
                 resp['title'] = "%s(%s)" % (item['name'].decode("utf-8"), code)
+        elif src in ('nasdaq', 'nyse', 'amex'):
+            sql = 'select id from us_symbol_int where binary symbol = "%s"' % code
+            a = engine.execute(sql)
+            b = a.fetchone()
+            if b:
+                resp['code'] = b[0]
+            else:
+                resp['text'] = 'no code'
+                self.render("html/error.html", **resp)
         else:
             # 沪深股票
             sql = '''select code, name
