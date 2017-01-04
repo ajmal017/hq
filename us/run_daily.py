@@ -258,19 +258,48 @@ def get_data(page_url, api_url, curr_id, end_date):
     return df
 
 
-import codes
-from codes import INVESTING_HOST, INVESTING_API
 
-API_URL = INVESTING_HOST + INVESTING_API
+def get_all_symbols(exchange):
+    try:
+        sql = 'select Symbol, cid from us_%s_cid' % exchange
+        a = engine.execute(sql)
+        aa = a.fetchall()
+        cids = {}
+        symbols = []
+        for symbol, cid in aa:
+            if not cid or cid == '0':
+                continue
+            symbols.append(symbol)
+        yyhtools.success("get all symbols len(symbols) = %s" % (len(symbols)))
+        return symbols
+    except Exception as e:
+        yyhtools.success("get empty symbols")
+        yyhtools.error(trackback.format_exc())
+        return []
 
-def _update_ohlc_daily(date, curr_id, table):
-    if curr_id == 0:
-        items = codes.all_items
+
+def get_date_ohlc(exchange, symbol, date):
+    for _ in range(3):
+        try:
+            time.sleep(0.005)
+            page_url = 'https://www.google.com.hk/finance/historical?q=%s:%s' % (exchange, symbol)
+            r = s.get(page_url, proxies=proxies)
+            html = lxml.html.parse(StringIO(r.text))
+            res = html.xpath('//input[@name=\"cid\"]')
+            if len(res) > 0:
+                node = res[0]
+                return node.value
+            return '0'
+        except Exception as e:
+            print traceback.format_exc()
+            yyhtools.error(traceback.format_exc())
+            return '0'
+
+def _update_ohlc_daily(date, symbol, table):
+    if symbol == 'ALL':
+        items = get_all_symbols(exchange)
     else:
-        item = codes.curr_id2item.get(curr_id)
-        if not item:
-            yyhtools.error("curr_id=%s not fund" % curr_id)
-        items = [item]
+        items = [symbol]
 
     data = pd.DataFrame()
     cur_idx = 0
@@ -286,9 +315,8 @@ def _update_ohlc_daily(date, curr_id, table):
             else:
                 yyhtools.info("%s(curr_id=%s) 获取重复数据." % (t['name'], t['curr_id']))
                 yyhtools.error(str(df))
-        # else:
-        #     yyhtools.error("%s(curr_id=%s) is None" % (t['name'], t['curr_id']))
-    print "_update_ohlc_daily finished"
+
+    yyhtools.info("_update_ohlc_daily finished")
     if len(data) == 0:
         return None
     return data
@@ -296,20 +324,16 @@ def _update_ohlc_daily(date, curr_id, table):
 
 
 @click.command()
+@click.option("--exchange", default="amex", help="exchange")
 @click.option('--date', default=0, help='日期')
-@click.option('--curr-id', default=15, help='curr_id')
-@click.option('--n', default=3, help='默认多少天前')
-def run_daily_investing(date, curr_id, n):
+@click.option('--symbol', default='BABA', help='BABA')
+def run_daily(exchange, date, symbol):
     if not date:
-        # 由于数据更新日期不统一，默认取三天前数据
-        assert n >= 0, '默认参数n=%s必须大于等于0'
-        day = datetime.datetime.now() - datetime.timedelta(days=n)
+        day = datetime.datetime.now() - datetime.timedelta(days=0)
         day = day.replace(hour=0, minute=0, second=0, microsecond=0)
         date = int(day.strftime("%Y%m%d"))
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
-
-
 
     def my_update_someday_data(df, date, save_table):
         sql = "delete from %s where date = %s" % (save_table, date)
@@ -329,53 +353,57 @@ def run_daily_investing(date, curr_id, n):
             ytrack.success("%s 成功更新 %s 条记录." % (save_table, df.shape[0]))
 
 
-    ytrack.success("start run_daily_investing(date=%s, curr_id=%s)" % (date, curr_id))
+    ytrack.success("start run_daily(date=%s, exchange=%s, symbol=%s)" % (date, exchange, symbol))
 
 
-    df1 = _update_ohlc_daily(day, curr_id, 'investing_ohlc_daily')
+    table1 = "%s_ohlc_daily" % exchange
+    df1 = _update_ohlc_daily(day, symbol, table1)
     if df1 is not None:
-        my_update_someday_data(df1, get_day_date(day), "investing_ohlc_daily")
+        my_update_someday_data(df1, get_day_date(day), table1)
     else:
-        ytrack.success("investing_ohlc_daily 需要更新的数据为空")
+        ytrack.success("%s 需要更新的数据为空" % table1)
 
-    df2 = _update_ohlc_weekly(date, curr_id, 'investing_ohlc_weekly')
+    table2 = '%s_ohlc_weekly' % exchange
+    df2 = _update_ohlc_weekly(date, symbol, table2)
     if df2 is not None:
-        my_update_someday_data(df2, get_week_date(day), 'investing_ohlc_weekly')
+        my_update_someday_data(df2, get_week_date(day), table2)
     else:
-        ytrack.success("investing_ohlc_weekly 需要更新的数据为空")
+        ytrack.success("%s 需要更新的数据为空" % table2)
 
-    df3 = _update_ohlc_monthly(date, curr_id, 'investing_ohlc_monthly')
+    table3 = '%s_ohlc_monthly' % exchange
+    df3 = _update_ohlc_monthly(date, symbol, table3)
     if df3 is not None:
-        my_update_someday_data(df3, get_month_date(day), 'investing_ohlc_monthly')
+        my_update_someday_data(df3, get_month_date(day), table3)
     else:
-        ytrack.success("investing_ohlc_monthly 需要更新的数据为空")
+        ytrack.success("%s 需要更新的数据为空" % table3)
+
 
     macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
-    df4 = _update_macd_daily(date, curr_id, 'investing_ohlc_daily')
+    df4 = _update_macd_daily(date, symbol, table1)
     if df4 is not None:
         df4 = df4[macd_cols]
-        my_update_someday_data(df4, get_day_date(day), 'investing_macd_daily')
+        my_update_someday_data(df4, get_day_date(day), '%s_macd_daily' % exchange)
     else:
-        ytrack.success("investing_macd_daily 需要更新的数据为空")
+        ytrack.success("%s_macd_daily 需要更新的数据为空" % exchange)
 
-    df5 = _update_macd_weekly(date, curr_id, 'investing_ohlc_weekly')
+    df5 = _update_macd_weekly(date, symbol, table2)
     if df5 is not None:
         df5 = df5[macd_cols]
-        my_update_someday_data(df5, get_week_date(day), 'investing_macd_weekly')
+        my_update_someday_data(df5, get_week_date(day), '%s_macd_weekly' % exchange)
     else:
-        ytrack.success("investing_macd_weekly 需要更新的数据为空")
+        ytrack.success("%s_macd_weekly 需要更新的数据为空" % exchange)
 
-    df6 = _update_macd_monthly(date, curr_id, 'investing_ohlc_monthly')
+    df6 = _update_macd_monthly(date, symbol, table3)
     if df6 is not None:
         df6 = df6[macd_cols]
-        my_update_someday_data(df6, get_month_date(day), 'investing_macd_monthly')
+        my_update_someday_data(df6, get_month_date(day), '%s_macd_monthly'%exchange)
     else:
-        ytrack.success("investing_macd_monthly 需要更新的数据为空")
+        ytrack.success("%s_macd_monthly 需要更新的数据为空"% exchange)
 
-    ynotice.send(ytrack.get_logs(), style='stock', title='%s-investing-K线图更新' % get_day_date(day))
+    ynotice.send(ytrack.get_logs(), style='stock', title='%s-%s-K线图更新' % (get_day_date(day), exchange))
 
 
 
 if __name__ == "__main__":
-    run_daily_investing()
+    run_daily()
 
