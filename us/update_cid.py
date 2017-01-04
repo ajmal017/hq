@@ -79,14 +79,14 @@ def get_data(exchange):
     if df is None:
         return
 
-    n = len(df)
-    cids = []
-    for i in range(n):
-        symbol = df.iloc[i]['Symbol']
-        cid = get_cid(exchange, symbol)
-        cids.append(cid)
+#    n = len(df)
+#    cids = []
+#    for i in range(n):
+#        symbol = df.iloc[i]['Symbol']
+#        cid = get_cid(exchange, symbol)
+#        cids.append(cid)
         # print symbol, cid
-    df['cid'] = cids
+#    df['cid'] = cids
     df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
 
 
