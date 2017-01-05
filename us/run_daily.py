@@ -302,6 +302,11 @@ def run_daily(exchange, date, symbol):
     else:
         day = datetime.datetime.strptime(str(date), "%Y%m%d")
 
+    if day.weekday() in (5, 6):
+        ytrack.fail('%s is not open day' % date)
+        ynotice.send(ytrack.get_logs(), style='stock', title=u'%s-%s-K线图更新' % (get_day_date(day), exchange))
+        return
+
     def my_update_someday_data(df, date, save_table):
         sql = "delete from %s where date = %s" % (save_table, date)
         ytrack.success("execute: %s" % sql)
