@@ -179,84 +179,10 @@ s = requests.Session()
 s.headers.update({
     "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36"
 })
-s.headers.update({
-    "X-Requested-With": "XMLHttpRequest"
-})
-
-def get_data(page_url, api_url, curr_id, end_date):
-    '''
-    取 end_date 这一天的数据
-    '''
-    for _ in range(3):
-        try:
-            # time.sleep(0.5)
-            # resp = s.get(page_url)
-            break
-        except (requests.exceptions.ConnectionError, Exception) as e:
-            yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
-            yyhtools.error(traceback.format_exc())
-            return
-
-
-    data = {"action": "historical_data",
-            "curr_id": str(curr_id),
-            "interval_sec": "Daily"}
-    # end_date = datetime.datetime(2016, 12, 2, 0, 0)
-    st_date = end_date
-    data['st_date'] = str(st_date.strftime("%Y/%m/%d"))
-    data['end_date'] = str(end_date.strftime("%Y/%m/%d"))
-    r = None
-    for _ in range(3):
-        try:
-            time.sleep(0.5)
-            r = s.post(api_url, data=data)
-            break
-        except requests.exceptions.ConnectionError as e:
-            yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
-            yyhtools.error(traceback.format_exc())
-            continue
-    if r is None:
-        return
-
-    html = lxml.html.parse(StringIO(r.text))
-    try:
-        res = html.xpath('//table[@id=\"curr_table\"]')
-    except Exception as e:
-        yyhtools.error("%s %s %s" % (page_url, api_url, curr_id))
-        yyhtools.error(traceback.format_exc())
-        return
-    if six.PY3:
-        sarr = [etree.tostring(node).decode('utf-8') for node in res]
-    else:
-        sarr = [etree.tostring(node) for node in res]
-        sarr = ''.join(sarr)
-
-    if sarr == '':
-        return
-    df = pd.read_html(sarr)[0]
-    if len(df) == 0:
-        return
-    if len(df) == 1 and df.iloc[0][u'日期'] == 'No results found...':
-        return
-
-    if len(df.columns) == 6:
-        df.columns = ['date', 'close', 'open', 'high', 'low', 'volume']
-        df.insert(5, 'amount', 0)
-    else:
-        df.columns = ['date', 'close', 'open', 'high', 'low', 'amount', 'volume']
-    df['date'] = pd.to_datetime(df['date'], format=u"%Y年%m月%d日")
-    df = df.drop('volume', axis=1)
-    df = df.drop('amount', axis=1)
-    df = df[df.date==end_date]
-    if len(df) > 1:
-        yyhtools.error("%s %s数据重复" % (curr_id, end_date))
-        yyhtools.error(str(df))
-        df = df[:1]
-    df.insert(0, 'code', curr_id)
-    df = df.set_index('code')
-    df['date'] = int(end_date.strftime("%Y%m%d"))
-    return df
-
+proxies = {
+    "http": "socks5://127.0.0.1:1080",
+    "https": "socks5://127.0.0.1:1080",
+}
 
 
 def get_all_symbols(exchange):
@@ -285,17 +211,26 @@ def get_date_ohlc(exchange, symbol, date):
             page_url = 'https://www.google.com.hk/finance/historical?q=%s:%s' % (exchange, symbol)
             r = s.get(page_url, proxies=proxies)
             html = lxml.html.parse(StringIO(r.text))
-            res = html.xpath('//input[@name=\"cid\"]')
-            if len(res) > 0:
-                node = res[0]
-                return node.value
-            return '0'
+            res = html.xpath('//table[@class=\"gf-table historical_price\"]')
+            sarr = [etree.tostring(node) for node in res]
+            sarr = ''.join(sarr)
+            if sarr == '':
+                return None
+            df = pd.read_html(sarr, skiprows = [0])[0]
+            df.columns = ['date', 'open', 'high', 'low', 'close', 'amount']
+            df['date'] = pd.to_datetime(df['date'], format=u"%Y-%m-%d")
+            df = df.drop_duplicates('date')
+            df = df[df.date==date]
+            if len(df) > 0:
+                df['date'] = int(date.strftime("%Y%m%d"))
+            return df
         except Exception as e:
             print traceback.format_exc()
             yyhtools.error(traceback.format_exc())
             return '0'
 
-def _update_ohlc_daily(date, symbol, table):
+
+def _update_ohlc_daily(date, symbol, table, exchange):
     if symbol == 'ALL':
         items = get_all_symbols(exchange)
     else:
@@ -307,13 +242,12 @@ def _update_ohlc_daily(date, symbol, table):
     for t in items:
         cur_idx +=1
         print "%s/%s .. " % (cur_idx, total)
-        PAGE_URL = INVESTING_HOST + t["page_url"]
-        df = get_data(PAGE_URL, API_URL, t["curr_id"], date)
+        df = get_date_ohlc(exchange, symbol, date)
         if df is not None:
             if len(df) == 1:
                 data = data.append(df)
             else:
-                yyhtools.info("%s(curr_id=%s) 获取重复数据." % (t['name'], t['curr_id']))
+                yyhtools.info("%s %s %s获取重复数据." % (exchange, symbol, date))
                 yyhtools.error(str(df))
 
     yyhtools.info("_update_ohlc_daily finished")
@@ -324,7 +258,7 @@ def _update_ohlc_daily(date, symbol, table):
 
 
 @click.command()
-@click.option("--exchange", default="amex", help="exchange")
+@click.option("--exchange", default="nyse", help="exchange")
 @click.option('--date', default=0, help='日期')
 @click.option('--symbol', default='BABA', help='BABA')
 def run_daily(exchange, date, symbol):
@@ -357,7 +291,7 @@ def run_daily(exchange, date, symbol):
 
 
     table1 = "%s_ohlc_daily" % exchange
-    df1 = _update_ohlc_daily(day, symbol, table1)
+    df1 = _update_ohlc_daily(day, symbol, table1, exchange)
     if df1 is not None:
         my_update_someday_data(df1, get_day_date(day), table1)
     else:
