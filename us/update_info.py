@@ -83,6 +83,7 @@ def get_data(exchange):
             yyhtools.error(traceback.format_exc())
             return
     if df is None:
+        ytrack.error("us_%s 数据更新失败." % exchange)
         return
 
     symbols = df['Symbol'].values.tolist()
