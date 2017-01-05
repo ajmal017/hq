@@ -300,7 +300,8 @@ def _update_ohlc_daily(date, symbol, table, exchange):
 def run_daily(exchange, date, symbol):
     symbol = symbol.upper()
     if not date:
-        day = datetime.datetime.now() - datetime.timedelta(days=0)
+        # 美股时间差一天
+        day = datetime.datetime.now() - datetime.timedelta(days=1)
         day = day.replace(hour=0, minute=0, second=0, microsecond=0)
         date = int(day.strftime("%Y%m%d"))
     else:
