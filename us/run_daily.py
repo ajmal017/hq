@@ -122,8 +122,9 @@ def _update_ohlc_between(startDate, endDate, code, table):
     else:
         codes = [get_code(code)]
     # 获取需要更新的代码
+    if len(codes) == 0:
+        return None
     codess = ','.join(map(str, codes))
-    print codess
     sql = '''select code, open from
                ( select date, code, open from %s where
                  date >= %d and date <= %d and code in (%s) order by date asc) as T
@@ -228,6 +229,7 @@ def get_code(symbol):
 
 
 def get_date_ohlc(exchange, symbol, date):
+    print exchange, symbol, date
     for _ in range(3):
         try:
             time.sleep(0.005)
@@ -256,11 +258,12 @@ def get_date_ohlc(exchange, symbol, date):
                 assert code > 0, 'symbol code is %s' % code
                 df.insert(0, 'code', code)
                 df = df.set_index('code')
-            return df
+                return df
+            return None
         except Exception as e:
             print traceback.format_exc()
             yyhtools.error(traceback.format_exc())
-            return '0'
+            return None
 
 
 def _update_ohlc_daily(date, symbol, table, exchange):
@@ -275,7 +278,7 @@ def _update_ohlc_daily(date, symbol, table, exchange):
     for t in items:
         cur_idx +=1
         print "%s/%s .. " % (cur_idx, total)
-        df = get_date_ohlc(exchange, symbol, date)
+        df = get_date_ohlc(exchange, t, date)
         if df is not None:
             if len(df) == 1:
                 data = data.append(df)
@@ -295,6 +298,7 @@ def _update_ohlc_daily(date, symbol, table, exchange):
 @click.option('--date', default=0, help='日期')
 @click.option('--symbol', default='BABA', help='BABA')
 def run_daily(exchange, date, symbol):
+    symbol = symbol.upper()
     if not date:
         day = datetime.datetime.now() - datetime.timedelta(days=0)
         day = day.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -377,5 +381,9 @@ def run_daily(exchange, date, symbol):
 
 
 if __name__ == "__main__":
-    run_daily()
+    try:
+        run_daily()
+    except Exception as e:
+        ytrack.error(traceback.format_exc())
+        ynotice.send(ytrack.get_logs(), style='stock', title=u'us run daily error.')
 
