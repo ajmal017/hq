@@ -38,16 +38,25 @@ def get_week_date(day):
     a = day.isocalendar()
     return "%s%02d" % (a[0], a[1])
 
+exchs = ['nyse', 'nasdaq', 'amex']
+
 def get_month_date(date):
     return date.year * 100 + date.month
 
 def _update_macd(date, code, ohlc_table):
-    if code == 0:
+    if code == 'ALL':
         sql = 'select distinct code from %s where date = %s;' % (ohlc_table, date)
         df = pd.read_sql_query(sql, engine, index_col='code')
         codes = df.index.values.tolist()
     else:
-        codes = [code]
+        sql = 'select distinct code from %s where date = %s;' % (ohlc_table, date)
+        df = pd.read_sql_query(sql, engine, index_col='code')
+        allcodes = df.index.values.tolist()
+        code = get_code(code)
+        if code in allcodes:
+            codes = [code]
+        else:
+            codes = []
     codes = map(int, codes)
     if len(codes) == 0:
         return None
@@ -105,13 +114,13 @@ def _update_macd_monthly(date, code, ohlc_table):
 
 def _update_ohlc_between(startDate, endDate, code, table):
     print startDate, endDate, code, table
-    if code == 0:
+    if code == 'ALL':
         sql = 'select distinct code from %s where date >= %s and date <= %s;' % (table, startDate, endDate)
         print sql
         df = pd.read_sql_query(sql, engine, index_col='code')
         codes = df.index.values.tolist()
     else:
-        codes = [code]
+        codes = [get_code(code)]
     # 获取需要更新的代码
     codess = ','.join(map(str, codes))
     print codess
@@ -145,7 +154,7 @@ def _update_ohlc_between(startDate, endDate, code, table):
 
 
 def _update_ohlc_weekly(date, code, table):
-    assert table in ['investing_ohlc_weekly']
+    assert table in ['%s_ohlc_weekly' % i for i in exchs]
     if not date:
         date = datetime.datetime.now()
     else:
@@ -161,7 +170,7 @@ def _update_ohlc_weekly(date, code, table):
 
 
 def _update_ohlc_monthly(date, code, table):
-    assert table in ['investing_ohlc_monthly']
+    assert table in ['%s_ohlc_monthly' % i for i in exchs]
     if not date:
         date = datetime.datetime.now()
     else:
@@ -204,6 +213,20 @@ def get_all_symbols(exchange):
         return []
 
 
+def get_code(symbol):
+    try:
+        a = engine.execute("select id from us_symbol_int where symbol='%s'" % symbol)
+        aa = a.fetchall()
+        if not aa:
+            b = engine.execute("insert into us_symbol_int(symbol) values ('%s')" % symbol)
+            a = engine.execute("select id from us_symbol_int where symbol='%s'" % symbol)
+            aa = a.fetchall()
+        return aa[0][0]
+    except Exception as e:
+        ytrack.error(traceback.format_exc())
+        return 0
+
+
 def get_date_ohlc(exchange, symbol, date):
     for _ in range(3):
         try:
@@ -218,11 +241,21 @@ def get_date_ohlc(exchange, symbol, date):
                 return None
             df = pd.read_html(sarr, skiprows = [0])[0]
             df.columns = ['date', 'open', 'high', 'low', 'close', 'amount']
-            df['date'] = pd.to_datetime(df['date'], format=u"%Y-%m-%d")
+            df = df.drop('amount', axis=1)
+            def date_to_int(s):
+                y, m, d = s.split("-")
+                return int(y) * 10000 + int(m) * 100 + int(d)
+            df['date'] = df['date'].apply(date_to_int)
+            # df['date'] = pd.to_datetime(df['date'], format=u"%Y-%m-%d")
             df = df.drop_duplicates('date')
-            df = df[df.date==date]
+            cmp_d = int(date.strftime("%Y%m%d"))
+            df = df[df.date==cmp_d]
             if len(df) > 0:
                 df['date'] = int(date.strftime("%Y%m%d"))
+                code = get_code(symbol)
+                assert code > 0, 'symbol code is %s' % code
+                df.insert(0, 'code', code)
+                df = df.set_index('code')
             return df
         except Exception as e:
             print traceback.format_exc()
@@ -247,7 +280,7 @@ def _update_ohlc_daily(date, symbol, table, exchange):
             if len(df) == 1:
                 data = data.append(df)
             else:
-                yyhtools.info("%s %s %s获取重复数据." % (exchange, symbol, date))
+                yyhtools.info("%s %s %s wrong data." % (exchange, symbol, date))
                 yyhtools.error(str(df))
 
     yyhtools.info("_update_ohlc_daily finished")
@@ -277,14 +310,14 @@ def run_daily(exchange, date, symbol):
         except:
             ytrack.fail(traceback.format_exc())
         else:
-            ytrack.success("%s删除数据成功" % save_table)
+            ytrack.success(u"%s删除数据成功" % save_table)
 
         try:
             df.to_sql(save_table, engine, if_exists='append', index=True, index_label='code')
         except:
             ytrack.fail(traceback.format_exc())
         else:
-            ytrack.success("%s 成功更新 %s 条记录." % (save_table, df.shape[0]))
+            ytrack.success(u"%s 成功更新 %s 条记录." % (save_table, df.shape[0]))
 
 
     ytrack.success("start run_daily(date=%s, exchange=%s, symbol=%s)" % (date, exchange, symbol))
@@ -295,21 +328,21 @@ def run_daily(exchange, date, symbol):
     if df1 is not None:
         my_update_someday_data(df1, get_day_date(day), table1)
     else:
-        ytrack.success("%s 需要更新的数据为空" % table1)
+        ytrack.success(u"%s 需要更新的数据为空" % table1)
 
     table2 = '%s_ohlc_weekly' % exchange
     df2 = _update_ohlc_weekly(date, symbol, table2)
     if df2 is not None:
         my_update_someday_data(df2, get_week_date(day), table2)
     else:
-        ytrack.success("%s 需要更新的数据为空" % table2)
+        ytrack.success(u"%s 需要更新的数据为空" % table2)
 
     table3 = '%s_ohlc_monthly' % exchange
     df3 = _update_ohlc_monthly(date, symbol, table3)
     if df3 is not None:
         my_update_someday_data(df3, get_month_date(day), table3)
     else:
-        ytrack.success("%s 需要更新的数据为空" % table3)
+        ytrack.success(u"%s 需要更新的数据为空" % table3)
 
 
     macd_cols = ['date'] + ['ma%s' % i for i in range(5, 251, 5)]
@@ -318,23 +351,23 @@ def run_daily(exchange, date, symbol):
         df4 = df4[macd_cols]
         my_update_someday_data(df4, get_day_date(day), '%s_macd_daily' % exchange)
     else:
-        ytrack.success("%s_macd_daily 需要更新的数据为空" % exchange)
+        ytrack.success(u"%s_macd_daily 需要更新的数据为空" % exchange)
 
     df5 = _update_macd_weekly(date, symbol, table2)
     if df5 is not None:
         df5 = df5[macd_cols]
         my_update_someday_data(df5, get_week_date(day), '%s_macd_weekly' % exchange)
     else:
-        ytrack.success("%s_macd_weekly 需要更新的数据为空" % exchange)
+        ytrack.success(u"%s_macd_weekly 需要更新的数据为空" % exchange)
 
     df6 = _update_macd_monthly(date, symbol, table3)
     if df6 is not None:
         df6 = df6[macd_cols]
         my_update_someday_data(df6, get_month_date(day), '%s_macd_monthly'%exchange)
     else:
-        ytrack.success("%s_macd_monthly 需要更新的数据为空"% exchange)
+        ytrack.success(u"%s_macd_monthly 需要更新的数据为空"% exchange)
 
-    ynotice.send(ytrack.get_logs(), style='stock', title='%s-%s-K线图更新' % (get_day_date(day), exchange))
+    ynotice.send(ytrack.get_logs(), style='stock', title=u'%s-%s-K线图更新' % (get_day_date(day), exchange))
 
 
 
