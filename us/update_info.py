@@ -67,6 +67,17 @@ def get_cid(exchange, symbol):
             yyhtools.error(traceback.format_exc())
             return '0'
 
+def marketcap_to_float(i):
+    if i.startswith("$"):
+        f = i[1:-1]
+        e = i[-1]
+        assert e in ['B', 'M']
+        if e == 'B':
+            return float(f) * 10
+        else:
+            return float(f) * 0.01
+    else:
+        return 0
 
 def get_data(exchange):
     df = None
@@ -76,6 +87,7 @@ def get_data(exchange):
             csv_path = "http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=%s&render=download" % exchange
             df = pd.read_csv(csv_path)
             df['Symbol'] = df['Symbol'].apply(string.strip).apply(string.rstrip)
+            df['MarketCap'] = df['MarketCap'].apply(marketcap_to_float)
             df.to_sql('us_%s' % exchange, engine, if_exists='replace', index=True, index_label='id')
             ytrack.success("us_%s 数据更新成功" % exchange)
             break
