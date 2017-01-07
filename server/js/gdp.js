@@ -10,9 +10,10 @@ function get_option(opData){
             data:opData.names
         },
         grid: {
-            left: '3%',
-            right: '4%',
+            left: '10',
+            right: '1%',
             bottom: '3%',
+            top: '120',
             containLabel: true
         },
         toolbox: {

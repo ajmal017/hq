@@ -89,7 +89,7 @@ function get_option(opData){
         dataZoom: [{
             show: true,
             type: 'slider',
-            start: 50,
+            start: 5,
             end: 100,
         }],
 
