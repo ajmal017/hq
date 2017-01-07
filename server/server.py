@@ -29,7 +29,7 @@ engine = create_engine(config.mysqlserver, echo=False, encoding="utf-8")
 
 FROM_SQL = True
 ohlc_cols = ','.join(['date', 'open', 'close', 'low', 'high'])
-macd_cols = ','.join(['date', 'ma5'] + ['ma%s' % i for i in range(10, 251, 10)])
+macd_cols = ','.join(['date'] + ['ma%s' % i for i in range(5, 91, 5)])
 
 
 def read_csv(csvpath, usecols=[], nrows=None):
