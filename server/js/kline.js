@@ -141,9 +141,11 @@ function init_chart(chartId){
 
     myChart.on('datazoom', function (params) {
         if(params.start == 0){
+            myChart.showLoading();
             var originOption = myChart.getOption();
             var enddate = originOption.xAxis[0].data[0];
             $.post(api_url, {"duration": chartId, "enddate": enddate}, function (data){
+                myChart.hideLoading();
                 if(data['code'] == 0 && data.data.n > 0){
                     option = update_series(myChart, originOption, data['data']);
                     myChart.setOption(option);
