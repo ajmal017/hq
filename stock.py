@@ -278,6 +278,15 @@ def update_stock_info():
             df = df.set_index(df.index.astype(int))
             df.to_sql('stock_list', engine, if_exists='replace', index=True, index_label='code')
             ytrack.info('update 股票列表 save to sql')
+
+            time.sleep(0.1)
+            df = ts.get_today_all()
+            fle = os.path.join(CURDIR, 'stock.today.csv')
+            df.to_csv(fle, encoding="utf-8")
+            df = df.set_index('code')
+            df = df.set_index(df.index.astype(int))
+            df.to_sql('stock_today', engine, if_exists='replace', index=True, index_label='code')
+            ytrack.info('update stock_today')
             break
         except Exception as e:
             ytrack.error(traceback.format_exc())

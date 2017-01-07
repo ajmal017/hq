@@ -71,11 +71,13 @@ def marketcap_to_float(i):
     if i.startswith("$"):
         f = i[1:-1]
         e = i[-1]
-        assert e in ['B', 'M']
+        # assert e in ['B', 'M'], '%s' % i
         if e == 'B':
             return float(f) * 10
-        else:
+        elif e == 'M':
             return float(f) * 0.01
+        else:
+            return float(i[1:]) * 0.0000001
     else:
         return 0
 

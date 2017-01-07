@@ -333,13 +333,24 @@ class PagesHandler(RequestHandler):
             page = self.get_args('page', 1, int)
             page_size = 100
             skip_size = (page-1) * page_size
+            # sql = '''select
+            # code, name, industry, area, pe, outstanding, totals, timeToMarket
+            # from stock_list limit %s offset %s''' % (page_size, skip_size)
             sql = '''select
-            code, name, industry, area, pe, outstanding, totals, timeToMarket
-            from stock_list limit %s offset %s''' % (page_size, skip_size)
+            stock_list.code,
+            stock_list.name,
+            stock_list.industry,
+            stock_list.area,
+            stock_list.pe,
+            stock_list.outstanding,
+            stock_list.totals,
+            stock_list.timeToMarket,
+            stock_list.totals * stock_today.trade as marketCap
+            from stock_list, stock_today where stock_list.code  = stock_today.code order by marketCap desc limit %s offset %s''' % (page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             resp['current_page'] = page
-            c = engine.execute("select count(code) from stock_list")
+            c = engine.execute("select count(stock_list.code) from stock_list, stock_today where stock_list.code = stock_today.code")
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
         elif page in ('nasdaq', 'nyse', 'amex'):
@@ -349,7 +360,7 @@ class PagesHandler(RequestHandler):
             page_size = 100
             skip_size = (page-1) * page_size
             sql = '''select Symbol, Name, LastSale, MarketCap, industry, IPOYear
-            from us_%s limit %s offset %s''' % (html_page, page_size, skip_size)
+            from us_%s order by MarketCap desc limit %s offset %s''' % (html_page, page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             resp['current_page'] = page
