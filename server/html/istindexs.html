@@ -8,7 +8,7 @@
 <div id="wrap">
   <div class="list-group">
     {% for i in data %}
-    <a href="/ohlc/investing/{{i['curr_id']}}" class="list-group-item">{{i['name']}}</a>
+    <a target="_blank" href="/ohlc/investing/{{i['curr_id']}}" class="list-group-item">{{i['name']}}</a>
     {% end %}
   </div>
 </div>
