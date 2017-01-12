@@ -132,7 +132,7 @@ function init_chart(chartId){
     myChart.showLoading();
 
     var api_url = "/ohlc/" + src + "/"+ code
-    $.post(api_url, {"duration": chartId}, function (data){
+    $.post(api_url, {"duration": 'daily'}, function (data){
         // data = JSON.parse(data);
         myChart.hideLoading();
         option = get_option(data['data']);
@@ -144,7 +144,7 @@ function init_chart(chartId){
             myChart.showLoading();
             var originOption = myChart.getOption();
             var enddate = originOption.xAxis[0].data[0];
-            $.post(api_url, {"duration": chartId, "enddate": enddate}, function (data){
+            $.post(api_url, {"duration": 'daily', "enddate": enddate}, function (data){
                 myChart.hideLoading();
                 if(data['code'] == 0 && data.data.n > 0){
                     option = update_series(myChart, originOption, data['data']);
