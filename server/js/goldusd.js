@@ -12,7 +12,7 @@ function get_option(opData){
             }
         }
     }]
-
+/*
     for(var name in opData['mas']){
         series.push({
             type: 'line',
@@ -27,7 +27,7 @@ function get_option(opData){
                 }
             }
         })
-    }
+    }*/
     var option = {
         backgroundColor: '#21202D',
         legend: {
@@ -106,7 +106,7 @@ function update_series(chart, originOption, opData){
         if(series[i].name == 'ohlcs'){
             series[i].data = opData['ohlcs'].concat(series[i].data);
         }else{
-            series[i].data = opData['mas'][series[i].name].concat(series[i].data);
+            // series[i].data = opData['mas'][series[i].name].concat(series[i].data);
         }
     }
     var n = opData.dates.length;

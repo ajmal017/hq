@@ -55,7 +55,7 @@ def read_csv(csvpath, usecols=[], nrows=None):
     return df
 
 
-def get_db_data(src, code, table, enddate='', limit=120):
+def get_db_data(src, code, table, enddate='', limit=60):
     '''
     src in ['astock', 'hsindexs', 'sinagoods', 'investing']
     enddate 表示小于（不包括）这一天的数据
@@ -415,7 +415,10 @@ class KlineHandler(RequestHandler):
     def get(self, src, code):
         resp = {
             "src": src,
-            "code": code
+            "code": code,
+            "monthly": True,
+            "weekly": True,
+            "daily": True,
         }
         resp['title'] = "%s_%s" % (src, code)
         if src == 'hsindexs':
@@ -436,6 +439,7 @@ class KlineHandler(RequestHandler):
             b = a.fetchone()
             if b:
                 resp['code'] = b[0]
+                resp['weekly'] = resp['daily'] = False
             else:
                 resp['text'] = 'no code'
                 self.render("html/error.html", **resp)

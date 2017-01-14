@@ -126,7 +126,11 @@ function update_series(chart, originOption, opData){
 }
 
 function init_chart(chartId){
-    var myChart = echarts.init(document.getElementById(chartId));
+    var node = document.getElementById(chartId);
+    if (node == null){
+        return
+    }
+    var myChart = echarts.init(node)
     var src = $("#monthly").attr('data-src');
     var code = $("#monthly").attr('data-code');
     myChart.showLoading();
