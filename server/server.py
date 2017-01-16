@@ -371,7 +371,10 @@ class PagesHandler(RequestHandler):
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
         elif page in ['sz50s', 'hs300', 'zz500s']:
             resp = {}
-            sql = '''select * from stock_%s ''' % page
+            sql = '''select stock_%s.*, stock_list.industry
+            from stock_%s,stock_list
+            where stock_%s.code = stock_list.code
+            ''' % (page, page, page)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             if page in ['hs300', 'zz500s', 'sz50s']:
