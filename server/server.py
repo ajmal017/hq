@@ -346,7 +346,8 @@ class PagesHandler(RequestHandler):
             stock_list.totals,
             stock_list.timeToMarket,
             stock_list.totals * stock_today.trade as marketCap
-            from stock_list, stock_today where stock_list.code  = stock_today.code order by marketCap desc limit %s offset %s''' % (page_size, skip_size)
+            from stock_list, stock_today where stock_list.code  = stock_today.code order by marketCap'''
+            # desc limit %s offset %s''' % (page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             resp['current_page'] = page
@@ -360,7 +361,8 @@ class PagesHandler(RequestHandler):
             page_size = 100
             skip_size = (page-1) * page_size
             sql = '''select Symbol, Name, LastSale, MarketCap, industry, IPOYear
-            from us_%s order by MarketCap desc limit %s offset %s''' % (html_page, page_size, skip_size)
+            from us_%s order by MarketCap ''' % html_page
+            # desc limit %s offset %s''' % (html_page, page_size, skip_size)
             a = engine.execute(sql)
             resp['data'] = a.fetchall()
             resp['current_page'] = page
