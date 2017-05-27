@@ -58,9 +58,12 @@ def _read_csv(csvpath, usecols=[], nrows=None):
 
 
 def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
-    assert src_type in ['sinagoods', 'hsindexs', 'investing']
+    assert src_type in ['sinagoods', 'hsindexs', 'investing', 'idxs']
     if src_type in ['sinagoods', 'hsindexs']:
         code = filename.split(".")[0]
+    elif src_type == 'idxs':
+        code = filename.split(".")[0]
+        code = code.replace("A", "1").replace("B", "2").replace("C", "3")
     else:
         from codes import code2int
         code = code2int[filename.replace(".csv", "")]
@@ -90,10 +93,10 @@ def _ohlc_daily(filename, src_dir, dest_dir, src_type='sinagoods'):
 
 
 @click.command()
-@click.option('--filename', default='SZ000001.txt', help=u'文件名')
-@click.option('--src-dir', default='ohlc_data', help=u'源目录')
-@click.option('--dest-dir', default='ohlc_daily', help='目标目录')
-@click.option('--src-type', default='sinagoods', help='srctype')
+@click.option('--filename', default='A11.txt', help=u'文件名')
+@click.option('--src-dir', default='idxs_ohlc_data', help=u'源目录')
+@click.option('--dest-dir', default='idxs_ohlc_daily', help='目标目录')
+@click.option('--src-type', default='idxs', help='srctype')
 @print_time
 def ohlc_daily(filename, src_dir, dest_dir, src_type):
     if filename == 'ALL':

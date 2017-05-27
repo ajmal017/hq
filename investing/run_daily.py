@@ -267,7 +267,7 @@ def _update_ohlc_daily(date, curr_id, table):
     if curr_id == 0:
         items = codes.all_items
     else:
-        item = codes.curr_id2item.get(curr_id)
+        item = codes.currid2item.get(curr_id)
         if not item:
             yyhtools.error("curr_id=%s not fund" % curr_id)
         items = [item]

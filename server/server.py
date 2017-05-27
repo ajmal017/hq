@@ -30,6 +30,15 @@ engine = create_engine(config.mysqlserver, echo=False, encoding="utf-8")
 FROM_SQL = True
 ohlc_cols = ','.join(['date', 'open', 'close', 'low', 'high'])
 macd_cols = ','.join(['date'] + ['ma%s' % i for i in range(5, 91, 5)])
+all_macd_cols = ','.join(['date'] + ['ma%s' % i for i in range(5, 251, 5)])
+
+def get_aastocks():
+    data = []
+    with open(os.path.join(CURDIR, "stock.csv")) as fp:
+        # code,display_name,name,start_date,end_date,type
+        for i in fp:
+            data.append(i.split(","))
+    return data
 
 
 def read_csv(csvpath, usecols=[], nrows=None):
@@ -68,7 +77,9 @@ def get_db_data(src, code, table, enddate='', limit=60):
         'hasMore': 0
     }
 
-    assert src in ['astock', 'hsindexs', 'sinagoods', 'investing', 'nasdaq', 'nyse', 'amex']
+    assert src in ['astock', 'hsindexs', 'sinagoods', 'investing', 'nasdaq', 'nyse', 'amex',
+                   'idxs']
+    _macd_cols = macd_cols
     if src == 'hsindexs':
         table_prefix = 'hs_indexs_'
         code = int(code)
@@ -77,10 +88,15 @@ def get_db_data(src, code, table, enddate='', limit=60):
         code = '"%s"' % code
     elif src == 'investing':
         table_prefix = 'investing_'
+        _macd_cols = all_macd_cols
         code = int(code)
     elif src in ('nasdaq', 'nyse', 'amex'):
         table_prefix = '%s_' % src
         code = int(code)
+    elif src == 'idxs':
+        table_prefix = 'idxs_'
+        code = int(code)
+        _macd_cols = all_macd_cols
     else:
         table_prefix = 'hs_stocks_'
         code = int(code)
@@ -123,18 +139,19 @@ def get_db_data(src, code, table, enddate='', limit=60):
         order by date desc limit %s
         ''' % (ohlc_cols, table_prefix, table, startdate, code, limit)
     ohlc_df  = pd.read_sql_query(ohlc_sql, engine, index_col='date')
+
     if enddate:
         macd_sql = '''
         SELECT %s FROM %smacd_%s
         where date < %s and date >= %s and code = %s
         order by date desc limit %s
-        ''' % (macd_cols, table_prefix, table, enddate, startdate, code, limit)
+        ''' % (_macd_cols, table_prefix, table, enddate, startdate, code, limit)
     else:
         macd_sql = '''
         SELECT %s FROM %smacd_%s
         where date > %s and code = %s
         order by date desc limit %s
-        ''' % (macd_cols, table_prefix, table, startdate, code, limit)
+        ''' % (_macd_cols, table_prefix, table, startdate, code, limit)
     macd_df  = pd.read_sql_query(macd_sql, engine, index_col='date')
 
     t1 = time.time()
@@ -320,6 +337,7 @@ class ErrorHandler(RequestHandler):
 
 import sinacodes
 import istcodes
+
 @route(r'/ohlc/pages/(\w+)', name='pages')
 class PagesHandler(RequestHandler):
 
@@ -354,6 +372,15 @@ class PagesHandler(RequestHandler):
             c = engine.execute("select count(stock_list.code) from stock_list, stock_today where stock_list.code = stock_today.code")
             total_rows = c.fetchone()[0]
             resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
+        elif page == 'aastocks':
+            resp = {}
+            page = self.get_args('page', 1, int)
+            page_size = 100
+            skip_size = (page-1) * page_size
+            resp['data'] = get_aastocks()
+            resp['current_page'] = page
+            total_rows = len(resp['data'])
+            resp['total_page'] = total_rows / page_size + ( 1 if total_rows % page_size else 0)
         elif page in ('nasdaq', 'nyse', 'amex'):
             html_page = page
             resp = {}
@@ -380,8 +407,61 @@ class PagesHandler(RequestHandler):
             if page in ['hs300', 'zz500s', 'sz50s']:
                 resp['data'] = sorted(resp['data'], key=lambda item:item[1], reverse=True)
             resp['title'] = page
+        elif page == 'dji':
+            # 道琼斯指数成分股
+            ss = ['AXP',  # 美国运通
+                  'BA',  # 波音
+                  'CVX',  # 雪佛龙
+                  'CSCO',  # 思科
+                  'AAPL',  # 苹果
+                  'V',     # Visa
+                  'CAT',   # 卡特彼勒
+                  '3M',    # 3M
+                  'VZ',    # 威瑞森
+                  'HD',    # 家得宝
+                  'IBM',   # IBM
+                  'MSFT',  # 微软
+                  'DIS',   # 迪士尼
+                  'DD',    # 杜邦
+                  'PG',    # 宝洁
+                  'GS',    # 高盛
+                  'INTC',  # 因特尔
+                  'WMT',   # 沃尔玛
+                  'GE',    # 通用电气
+                  'MRK',   # 默克
+                  'UNH',   # 联合健康保险
+                  'PFE',   # 辉瑞
+                  'UTX',   # 联合技术
+                  'XOM',   # 艾克生美孚
+                  'JPM',   # 摩根大通
+                  'NKE',   # 耐克
+                  'MCD',   # 麦丹劳
+                  'KO',    # 可口可乐
+                  'MMM',   # 3m
+                  'TRV',   # 旅行家
+                  'JNJ']   # 强生
+            ss = "'" + "','".join(ss) + "'"
+            resp = {}
+            page = self.get_args('page', 1, int)
+
+            sql = '''select Symbol, Name, LastSale, MarketCap, industry, IPOYear
+            from us_nyse where Symbol in (%s) order by MarketCap ''' % ss
+            a = engine.execute(sql)
+            resp['data'] = a.fetchall()
+
+            sql = '''select Symbol, Name, LastSale, MarketCap, industry, IPOYear
+            from us_nasdaq where Symbol in (%s) order by MarketCap ''' % ss
+            a = engine.execute(sql)
+            resp['data'] += a.fetchall()
+            resp['current_page'] = page
+            resp['total_page'] = 1
+
         elif page == 'sinagoods':
+
             resp = {"data": sinacodes.goods}
+        elif page == 'idxs':
+            import idxs
+            resp = {"data": idxs.indexs}
         elif page == 'istindexs':
             resp = {"data":istcodes.indexs}
         elif page == 'istfxpros':
@@ -409,6 +489,7 @@ class PagesHandler(RequestHandler):
         else:
             raise Exception("unkown page.")
 
+
 @route(r'/ohlc/(\w+)/(\w+)', name='kline')
 class KlineHandler(RequestHandler):
     '''
@@ -434,6 +515,9 @@ class KlineHandler(RequestHandler):
                     # resp['title'] = i[1]
                     resp['title'] = "%s(%s)" % (i[1].decode("utf-8"), code)
                     break
+        elif src == 'idxs':
+            import idxs
+            resp['title'] = idxs.aa.get(code, code)
         elif src == 'investing':
             item = istcodes.currid2item.get(int(code))
             if item:
@@ -444,7 +528,7 @@ class KlineHandler(RequestHandler):
             b = a.fetchone()
             if b:
                 resp['code'] = b[0]
-                resp['weekly'] = resp['daily'] = False
+                # resp['weekly'] = resp['daily'] = False
             else:
                 resp['text'] = 'no code'
                 self.render("html/error.html", **resp)
