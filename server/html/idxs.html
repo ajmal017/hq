@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>指数</title>
+{% end %}
+
+{% block wrap %}
+<div id="wrap">
+  <div class="list-group">
+    {% for code, name in data %}
+    <a href="/ohlc/idxs/{{code}}" class="list-group-item">{{name}}</a>
+    {% end %}
+  </div>
+</div>
+{% end %}

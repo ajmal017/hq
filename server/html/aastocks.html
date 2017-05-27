@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>沪深指数</title>
+<link rel="stylesheet" href="{{static_url('css/jquery.dataTables.css')}}" />
+<script type="text/javascript" src="{{static_url('js/jquery.dataTables.js')}}"> </script>
+<script type="text/javascript">
+  $(document).ready( function () {
+    $('#stock').DataTable({});
+  });
+</script>
+{% end %}
+<!-- ,display_name,name,start_date,end_date,type -->
+
+{% block wrap %}
+<div id="wrap">
+  <table id="stock" class="table table-striped">
+    <thead>
+      <tr>
+        <th>上市日期</th>
+        <th>code</th>
+        <th>name</th>
+
+      </tr>
+    </thead>
+    <tfoot>
+      <tr>
+        <th>上市日期</th>
+        <th>code</th>
+        <th>name</th>
+
+      </tr>
+    </tfoot>
+
+    <tbody>
+      {% for i in data %}
+      <tr>
+        <td>{{i[3]}}</td>
+        <td>{{i[0]}}</td>
+        <td>{{i[1]}}</td>
+
+      </tr>
+      {% end %}
+    </tbody>
+  </table>
+</div>
+{% end %}

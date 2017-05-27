@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block head %}
+<title>道琼斯成分股</title>
+<link rel="stylesheet" href="{{static_url('css/jquery.dataTables.css')}}" />
+<script type="text/javascript" src="{{static_url('js/jquery.dataTables.js')}}"> </script>
+<script type="text/javascript">
+  $(document).ready( function () {
+    $('#stock').DataTable({
+  initComplete: function () {
+            this.api().column(4).every( function () {
+                var column = this;
+                var select = $('<select style="width:150px"><option value=""></option></select>')
+                    .appendTo( $(column.footer()).empty() )
+                    .on( 'change', function () {
+                        var val = $.fn.dataTable.util.escapeRegex(
+                            $(this).val()
+                        );
+
+                        column
+                            .search( val ? '^'+val+'$' : '', true, false )
+                            .draw();
+                    } );
+
+                column.data().unique().sort().each( function ( d, j ) {
+                    select.append( '<option value="'+d+'">'+d+'</option>' )
+                } );
+            } );
+        }
+   });
+  });
+</script>
+{% end %}
+
+{% block wrap %}
+<div id="wrap">
+  <table id="stock" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Name</th>
+        <th>LastSale</th>
+        <th>MarketCap</th>
+        <th>industry</th>
+        <th>IPOYear</th>
+      </tr>
+    </thead>
+    <tfoot>
+      <tr>
+        <th>Symbol</th>
+        <th>Name</th>
+        <th>LastSale</th>
+        <th>MarketCap</th>
+        <th>industry</th>
+        <th>IPOYear</th>
+      </tr>
+    </tfoot>
+    <tbody>
+      {% for i in data %}
+      <tr>
+        <th scope="row"><a target="_blank" href=/ohlc/nyse/{{i[0]}}>{{i[0]}}</a></th>
+        <td>{{i[1]}}</td>
+        <td>{{i[2]}}</td>
+        <td>{{i[3]}}</td>
+        <td>{{i[4]}}</td>
+        <td>{{i[5]}}</td>
+      </tr>
+      {% end %}
+    </tbody>
+  </table>
+</div>
+{% end %}
